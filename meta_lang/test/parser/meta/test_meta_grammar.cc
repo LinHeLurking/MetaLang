@@ -6,22 +6,34 @@ using namespace meta_lang::meta_grammar::parser;
 
 TEST(MetaGrammar, Parser_1) {
   auto parser = MetaParser(TEST_GRAMMAR_FILE_1);
-  EXPECT_TRUE(parser.Identifier().has_value());
-  EXPECT_TRUE(parser.RightArrow().has_value());
-  EXPECT_TRUE(parser.StrLiteral().has_value());
-  EXPECT_TRUE(parser.Semicolon().has_value());
+  ASSERT_TRUE(parser.Identifier().has_value());
+  ASSERT_TRUE(parser.RightArrow().has_value());
+  ASSERT_TRUE(parser.StrLiteral().has_value());
+  ASSERT_TRUE(parser.Semicolon().has_value());
 
-  EXPECT_EQ(parser.GetToken(0).type_, TokenType::kIdentifier);
-  EXPECT_EQ(parser.GetToken(0).body_, "test");
+  {
+    auto t = parser.ConsumeToken();
+    ASSERT_EQ(t.type_, TokenType::kIdentifier);
+    ASSERT_EQ(t.body_, "test");
+  }
 
-  EXPECT_EQ(parser.GetToken(1).type_, TokenType::kRightArrow);
-  EXPECT_EQ(parser.GetToken(1).body_, "->");
+  {
+    auto t = parser.ConsumeToken();
+    ASSERT_EQ(t.type_, TokenType::kRightArrow);
+    ASSERT_EQ(t.body_, "->");
+  }
 
-  EXPECT_EQ(parser.GetToken(2).type_, TokenType::kStrLiteral);
-  EXPECT_EQ(parser.GetToken(2).body_, "a");
+  {
+    auto t = parser.ConsumeToken();
+    ASSERT_EQ(t.type_, TokenType::kStrLiteral);
+    ASSERT_EQ(t.body_, "a");
+  }
 
-  EXPECT_EQ(parser.GetToken(3).type_, TokenType::kSemicolon);
-  EXPECT_EQ(parser.GetToken(3).body_, ";");
+  {
+    auto t = parser.ConsumeToken();
+    ASSERT_EQ(t.type_, TokenType::kSemicolon);
+    ASSERT_EQ(t.body_, ";");
+  }
 }
 
 TEST(MetaGrammar, Parser_2) {
@@ -31,56 +43,148 @@ TEST(MetaGrammar, Parser_2) {
                    .and_then([](auto self) { return self->RightArrow(); })
                    .and_then([](auto self) { return self->StrLiteral(); })
                    .and_then([](auto self) { return self->Semicolon(); });
-    EXPECT_TRUE(res.has_value());
+    ASSERT_TRUE(res.has_value());
   }
-  EXPECT_EQ(parser.GetToken(0).type_, TokenType::kIdentifier);
-  EXPECT_EQ(parser.GetToken(0).body_, "abcd");
-  EXPECT_EQ(parser.GetToken(1).type_, TokenType::kRightArrow);
-  EXPECT_EQ(parser.GetToken(1).body_, "->");
-  EXPECT_EQ(parser.GetToken(2).type_, TokenType::kStrLiteral);
-  EXPECT_EQ(parser.GetToken(2).body_, "xyz");
-  EXPECT_EQ(parser.GetToken(3).type_, TokenType::kSemicolon);
-  EXPECT_EQ(parser.GetToken(3).body_, ";");
+  {
+    auto t = parser.ConsumeToken();
+    ASSERT_EQ(t.type_, TokenType::kIdentifier);
+    ASSERT_EQ(t.body_, "abcd");
+  }
+  {
+    auto t = parser.ConsumeToken();
+    ASSERT_EQ(t.type_, TokenType::kRightArrow);
+    ASSERT_EQ(t.body_, "->");
+  }
+  {
+    auto t = parser.ConsumeToken();
+    ASSERT_EQ(t.type_, TokenType::kStrLiteral);
+    ASSERT_EQ(t.body_, "xyz");
+  }
+  {
+    auto t = parser.ConsumeToken();
+    ASSERT_EQ(t.type_, TokenType::kSemicolon);
+    ASSERT_EQ(t.body_, ";");
+  }
 
-  EXPECT_EQ(parser.GetToken(4).type_, TokenType::kIdentifier);
-  EXPECT_EQ(parser.GetToken(4).body_, "中文标识");
-  EXPECT_EQ(parser.GetToken(5).type_, TokenType::kRightArrow);
-  EXPECT_EQ(parser.GetToken(5).body_, "->");
-  EXPECT_EQ(parser.GetToken(6).type_, TokenType::kStrLiteral);
-  EXPECT_EQ(parser.GetToken(6).body_, "中文字符串");
-  EXPECT_EQ(parser.GetToken(7).type_, TokenType::kSemicolon);
-  EXPECT_EQ(parser.GetToken(7).body_, ";");
+  {
+    auto t = parser.ConsumeToken();
+    ASSERT_EQ(t.type_, TokenType::kIdentifier);
+    ASSERT_EQ(t.body_, "中文标识");
+  }
+  {
+    auto t = parser.ConsumeToken();
+    ASSERT_EQ(t.type_, TokenType::kRightArrow);
+    ASSERT_EQ(t.body_, "->");
+  }
+  {
+    auto t = parser.ConsumeToken();
+    ASSERT_EQ(t.type_, TokenType::kStrLiteral);
+    ASSERT_EQ(t.body_, "中文字符串");
+  }
+  {
+    auto t = parser.ConsumeToken();
+    ASSERT_EQ(t.type_, TokenType::kSemicolon);
+    ASSERT_EQ(t.body_, ";");
+  }
 }
 
 TEST(MetaGrammar, ParserStrLiteralUnion) {
   auto parser = MetaParser(TEST_GRAMMAR_FILE_3);
-  while (!parser.IsFinished()) {
-    auto res = parser.Identifier()
-                   .and_then([](auto self) { return self->RightArrow(); })
-                   .and_then([](auto self) { return self->StrLiteralUnion(); })
-                   .and_then([](auto self) { return self->Semicolon(); });
-    EXPECT_TRUE(res.has_value());
+  auto res = parser.Tokenize();
+  ASSERT_TRUE(res.has_value());
+
+  {
+    auto t = parser.ConsumeToken();
+    ASSERT_EQ(t.type_, TokenType::kIdentifier);
+    ASSERT_EQ(t.body_, "abcd");
+  }
+  {
+    auto t = parser.ConsumeToken();
+    ASSERT_EQ(t.type_, TokenType::kRightArrow);
+    ASSERT_EQ(t.body_, "->");
+  }
+  {
+    auto t = parser.ConsumeToken();
+    ASSERT_EQ(t.type_, TokenType::kStrLiteral);
+    ASSERT_EQ(t.body_, "xyz");
+  }
+  {
+    auto t = parser.ConsumeToken();
+    ASSERT_EQ(t.type_, TokenType::kSemicolon);
+    ASSERT_EQ(t.body_, ";");
   }
 
-  EXPECT_EQ(parser.GetToken(0).type_, TokenType::kIdentifier);
-  EXPECT_EQ(parser.GetToken(0).body_, "abcd");
-  EXPECT_EQ(parser.GetToken(1).type_, TokenType::kRightArrow);
-  EXPECT_EQ(parser.GetToken(1).body_, "->");
-  EXPECT_EQ(parser.GetToken(2).type_, TokenType::kStrLiteral);
-  EXPECT_EQ(parser.GetToken(2).body_, "xyz");
-  EXPECT_EQ(parser.GetToken(3).type_, TokenType::kSemicolon);
-  EXPECT_EQ(parser.GetToken(3).body_, ";");
+  {
+    auto t = parser.ConsumeToken();
+    ASSERT_EQ(t.type_, TokenType::kIdentifier);
+    ASSERT_EQ(t.body_, "xyz");
+  }
+  {
+    auto t = parser.ConsumeToken();
+    ASSERT_EQ(t.type_, TokenType::kRightArrow);
+    ASSERT_EQ(t.body_, "->");
+  }
+  {
+    auto t = parser.ConsumeToken();
+    ASSERT_EQ(t.type_, TokenType::kStrLiteral);
+    ASSERT_EQ(t.body_, "abcd");
+  }
+  {
+    auto t = parser.ConsumeToken();
+    ASSERT_EQ(t.type_, TokenType::kUnion);
+    ASSERT_EQ(t.body_, "|");
+  }
+  {
+    auto t = parser.ConsumeToken();
+    ASSERT_EQ(t.type_, TokenType::kStrLiteral);
+    ASSERT_EQ(t.body_, "uvw");
+  }
+  {
+    auto t = parser.ConsumeToken();
+    ASSERT_EQ(t.type_, TokenType::kSemicolon);
+    ASSERT_EQ(t.body_, ";");
+  }
+}
 
-  EXPECT_EQ(parser.GetToken(4).type_, TokenType::kIdentifier);
-  EXPECT_EQ(parser.GetToken(4).body_, "xyz");
-  EXPECT_EQ(parser.GetToken(5).type_, TokenType::kRightArrow);
-  EXPECT_EQ(parser.GetToken(5).body_, "->");
-  EXPECT_EQ(parser.GetToken(6).type_, TokenType::kStrLiteral);
-  EXPECT_EQ(parser.GetToken(6).body_, "abcd");
-  EXPECT_EQ(parser.GetToken(7).type_, TokenType::kUnion);
-  EXPECT_EQ(parser.GetToken(7).body_, "|");
-  EXPECT_EQ(parser.GetToken(8).type_, TokenType::kStrLiteral);
-  EXPECT_EQ(parser.GetToken(8).body_, "uvw");
-  EXPECT_EQ(parser.GetToken(9).type_, TokenType::kSemicolon);
-  EXPECT_EQ(parser.GetToken(9).body_, ";");
+TEST(MetaGrammar, ParserAst) {
+  auto parser = MetaParser(TEST_GRAMMAR_FILE_3);
+  {
+    auto res = parser.Tokenize();
+    ASSERT_TRUE(res.has_value());
+  }
+  {
+    auto res = parser.BuildAst();
+    ASSERT_TRUE(res.has_value());
+  }
+  auto &ast = parser.GetAst();
+  ASSERT_EQ(ast.type_, AstNodeType::kGrammar);
+  for (auto &rule : ast.children_) {
+    ASSERT_EQ(rule.type_, AstNodeType::kRule);
+  }
+  ASSERT_EQ(ast.children_.size(), 2);
+  {
+    auto &rule = ast.children_[0];
+    ASSERT_EQ(rule.children_.size(), 2);
+    auto &id = rule.children_[0];
+    ASSERT_EQ(id.type_, AstNodeType::kIdentifier);
+    auto &str_literal = rule.children_[1];
+    ASSERT_EQ(str_literal.type_, AstNodeType::kStrLiteral);
+  }
+  {
+    auto rule = ast.children_[1];
+    ASSERT_EQ(rule.children_.size(), 2);
+    auto &id = rule.children_[0];
+    ASSERT_EQ(id.type_, AstNodeType::kIdentifier);
+    auto &literal_union = rule.children_[1];
+    ASSERT_EQ(literal_union.type_, AstNodeType::kStrLiteralUnion);
+    auto &literals = literal_union.children_;
+    ASSERT_EQ(literals.size(), 2);
+    for (auto &literal : literals) {
+      ASSERT_EQ(literal.type_, AstNodeType::kStrLiteral);
+    }
+    auto &abcd = literals[0];
+    ASSERT_EQ(abcd.body_, "abcd");
+    auto &uvw = literals[1];
+    ASSERT_EQ(uvw.body_, "uvw");
+  }
 }

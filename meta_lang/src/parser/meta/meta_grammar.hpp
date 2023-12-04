@@ -3,6 +3,7 @@
 
 #include <cassert>
 #include <expected>
+#include <queue>
 #include <string>
 #include <vector>
 
@@ -32,7 +33,46 @@ class Token {
   Token(TokenType t, util::StringLike auto s) : type_(t), body_(s) {}
 };
 
-class MetaParser;
+enum class AstNodeType {
+  kIdentifier,
+  kStrLiteral,
+  kRule,
+  kGrammar,
+  kStrLiteralUnion
+};
+
+enum class AstError {
+  kBadToken,
+  kMissingToken,
+};
+
+class AstNode {
+ public:
+  AstNode() : type_(AstNodeType::kGrammar), body_(), children_() {}
+  explicit AstNode(AstNodeType t) : type_(t), children_() {}
+  explicit AstNode(Token t) : children_(), body_(std::move(t.body_)) {
+    switch (t.type_) {
+      case TokenType::kIdentifier: {
+        type_ = AstNodeType::kIdentifier;
+        break;
+      }
+      case TokenType::kStrLiteral: {
+        type_ = AstNodeType::kStrLiteral;
+        break;
+      }
+      case TokenType::kSemicolon:
+      case TokenType::kRightArrow:
+      case TokenType::kUnion: {
+        throw std::runtime_error("Cannot use build ast node from this token: " +
+                                 std::to_string(int(t.type_)));
+      }
+    }
+  }
+
+  AstNodeType type_;
+  std::string body_;
+  std::vector<AstNode> children_;
+};
 
 class MetaParser {
   using Char = uint32_t;
@@ -49,7 +89,15 @@ class MetaParser {
     return false;
   }
 
-  Token& GetToken(int idx) { return tokens_[idx]; }
+  Token ConsumeToken() {
+    auto t = tokens_.front();
+    tokens_.pop_front();
+    return std::move(t);
+  }
+
+  Token& PeekToken() { return tokens_.front(); }
+
+  AstNode& GetAst() { return ast_; }
 
  private:
   Char GetCh() {
@@ -99,12 +147,17 @@ class MetaParser {
 
   std::expected<MetaParser*, ParserError> StrLiteralUnion();
 
+  std::expected<MetaParser*, ParserError> Tokenize();
+
+  std::expected<MetaParser*, AstError> BuildAst();
+
  private:
   constexpr static int BUF_SIZE = 128;
   Char ch_buf_[BUF_SIZE]{};
   int ch_p_ = -1;
+  AstNode ast_;
   util::ByteFileReader reader_;
-  std::vector<Token> tokens_ = {};
+  std::deque<Token> tokens_ = {};
 };
 }  // namespace meta_lang::meta_grammar::parser
 
