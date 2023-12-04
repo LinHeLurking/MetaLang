@@ -89,7 +89,7 @@ class MetaParser {
 
   std::expected<MetaParser*, ParserError> Identifier();
 
-  std::expected<MetaParser*, ParserError> LiteralPattern();
+  std::expected<MetaParser*, ParserError> StrLiteral();
 
  private:
   constexpr static int BUF_SIZE = 128;

@@ -58,7 +58,7 @@ std::expected<MetaParser *, ParserError> MetaParser::Identifier() {
   return this;
 }
 
-std::expected<MetaParser *, ParserError> MetaParser::LiteralPattern() {
+std::expected<MetaParser *, ParserError> MetaParser::StrLiteral() {
   Char pre = 0;
   std::stringstream ss;
   char buf[4];

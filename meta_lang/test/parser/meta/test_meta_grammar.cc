@@ -8,7 +8,7 @@ TEST(MetaGrammar, Parser_1) {
   auto parser = MetaParser(TEST_GRAMMAR_FILE_1);
   EXPECT_TRUE(parser.Identifier().has_value());
   EXPECT_TRUE(parser.RightArrow().has_value());
-  EXPECT_TRUE(parser.LiteralPattern().has_value());
+  EXPECT_TRUE(parser.StrLiteral().has_value());
   EXPECT_TRUE(parser.Semicolon().has_value());
 
   EXPECT_EQ(parser.GetToken(0).type_, TokenType::kIdentifier);
@@ -29,7 +29,7 @@ TEST(MetaGrammar, Parser_2) {
   while (!parser.IsFinished()) {
     auto res = parser.Identifier()
                    .and_then([](auto self) { return self->RightArrow(); })
-                   .and_then([](auto self) { return self->LiteralPattern(); })
+                   .and_then([](auto self) { return self->StrLiteral(); })
                    .and_then([](auto self) { return self->Semicolon(); });
     EXPECT_TRUE(res.has_value());
   }
