@@ -11,7 +11,13 @@
 #include "src/util/string/utf8.hpp"
 
 namespace meta_lang::meta_grammar::parser {
-enum class TokenType { kSemicolon, kIdentifier, kRightArrow, kLiteralPattern };
+enum class TokenType {
+  kSemicolon,
+  kIdentifier,
+  kRightArrow,
+  kStrLiteral,
+  kUnion,
+};
 
 enum class ParserError {
   kErrorChar,
@@ -90,6 +96,8 @@ class MetaParser {
   std::expected<MetaParser*, ParserError> Identifier();
 
   std::expected<MetaParser*, ParserError> StrLiteral();
+
+  std::expected<MetaParser*, ParserError> StrLiteralUnion();
 
  private:
   constexpr static int BUF_SIZE = 128;

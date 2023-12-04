@@ -51,6 +51,7 @@ if (META_LANG_BUILD_TESTS)
     target_link_libraries(test_meta_grammar PUBLIC meta_grammar_parser)
     meta_lang_test_res_def(test_meta_grammar TEST_GRAMMAR_FILE_1 meta_lang/test/parser/meta/test_1.grammar)
     meta_lang_test_res_def(test_meta_grammar TEST_GRAMMAR_FILE_2 meta_lang/test/parser/meta/test_2.grammar)
+    meta_lang_test_res_def(test_meta_grammar TEST_GRAMMAR_FILE_3 meta_lang/test/parser/meta/test_3.grammar)
 
     meta_lang_test(test_utf8 meta_lang/test/util/string/test_utf8.cc)
 

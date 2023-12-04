@@ -85,7 +85,23 @@ std::expected<MetaParser *, ParserError> MetaParser::StrLiteral() {
   RET_ON_CH_NOT_MATCH(ch, '\'');
 
   auto s = ss.str();
-  tokens_.emplace_back(TokenType::kLiteralPattern, std::move(s));
+  tokens_.emplace_back(TokenType::kStrLiteral, std::move(s));
+  return this;
+}
+std::expected<MetaParser *, ParserError> MetaParser::StrLiteralUnion() {
+  do {
+    auto res = StrLiteral();
+    if (!res.has_value()) {
+      return res;
+    }
+    auto ch = NextNonEmpty();
+    if (ch == '|') {
+      tokens_.emplace_back(TokenType::kUnion, "|");
+    } else {
+      UngetCh(ch);
+      break;
+    }
+  } while (true);
   return this;
 }
 }  // namespace meta_lang::meta_grammar::parser
