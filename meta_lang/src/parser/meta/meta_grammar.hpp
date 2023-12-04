@@ -7,7 +7,8 @@
 #include <string>
 #include <vector>
 
-#include "util/concept/string_like.hpp"
+#include "src/util/concept/string_like.hpp"
+#include "src/util/string/utf8.hpp"
 
 namespace meta_lang::meta_grammar::parser {
 enum class TokenType { kSemicolon, kIdentifier, kRightArrow };
@@ -22,7 +23,7 @@ class Token {
   TokenType type_;
   std::string body_;
 
-  Token(TokenType t, StringLike auto s) : type_(t), body_(s) {}
+  Token(TokenType t, util::StringLike auto s) : type_(t), body_(s) {}
 };
 
 class MetaParser;
@@ -33,19 +34,30 @@ class MetaParser {
   using Char = uint32_t;
 
  public:
-  explicit MetaParser(StringLike auto s)
+  explicit MetaParser(util::StringLike auto s)
       : f_(s, std::ios::in | std::ios::binary) {}
 
  private:
-  Char GetCh();
-
-  void UngetCh(Char ch) {
-    assert(p_ < BUF_SIZE - 5);
-    buf_[++p_] = ch;
+  Char GetCh() {
+    if (ch_p_ >= 0) {
+      return ch_buf_[ch_p_--];
+    }
+    if (f_.eof()) {
+      return EOF;
+    }
+    char buf[4];
+    f_.read(buf, 4);
+    auto [ret, cnt] = util::BytesToCodepoint(buf);
+    for (int i = 4; i > cnt; --i) {
+      f_.unget();
+    }
+    return ret;
   }
 
-  static int8_t CharToBytes(MetaParser::Char ch, char* buf_begin,
-                            char* buf_end);
+  void UngetCh(Char ch) {
+    assert(ch_p_ < BUF_SIZE - 5);
+    ch_buf_[++ch_p_] = ch;
+  }
 
   static bool IsWhiteSpace(Char ch) {
     return ch == ' ' || ch == '\n' || ch == '\r';
@@ -67,8 +79,8 @@ class MetaParser {
 
  private:
   constexpr static size_t BUF_SIZE = 128;
-  Char buf_[BUF_SIZE]{};
-  int p_ = 0;
+  Char ch_buf_[BUF_SIZE]{};
+  int ch_p_ = 0;
   std::ifstream f_;
   std::vector<Token> tokens_ = {};
 };

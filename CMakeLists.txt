@@ -13,7 +13,7 @@ include(FetchContent)
 # library helper
 macro(meta_lang_library name)
     add_library(${name} ${ARGN})
-    target_include_directories(${name} PRIVATE meta_lang/src)
+    target_include_directories(${name} PRIVATE meta_lang/)
 endmacro()
 
 # meta grammar parser for itself
@@ -35,9 +35,12 @@ if (META_LANG_BUILD_TESTS)
     macro(meta_lang_test name)
         add_executable(${name} ${ARGN})
         target_link_libraries(${name} PRIVATE GTest::gtest_main)
+        target_include_directories(${name} PRIVATE meta_lang/)
         gtest_discover_tests(${name})
     endmacro()
 
     meta_lang_test(test_meta_parser meta_lang/test/parser/meta/test_meta_grammar.cc)
     target_link_libraries(test_meta_parser PRIVATE meta_grammar_parser)
+
+    meta_lang_test(test_utf8 meta_lang/test/util/string/test_utf8.cc)
 endif ()
