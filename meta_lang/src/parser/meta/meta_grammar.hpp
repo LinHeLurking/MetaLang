@@ -3,15 +3,15 @@
 
 #include <cassert>
 #include <expected>
-#include <fstream>
 #include <string>
 #include <vector>
 
 #include "src/util/concept/string_like.hpp"
+#include "src/util/fs/byte_reader.hpp"
 #include "src/util/string/utf8.hpp"
 
 namespace meta_lang::meta_grammar::parser {
-enum class TokenType { kSemicolon, kIdentifier, kRightArrow };
+enum class TokenType { kSemicolon, kIdentifier, kRightArrow, kLiteralPattern };
 
 enum class ParserError {
   kErrorChar,
@@ -28,28 +28,39 @@ class Token {
 
 class MetaParser;
 
-using MetaParserRef = std::reference_wrapper<MetaParser>;
-
 class MetaParser {
   using Char = uint32_t;
 
  public:
-  explicit MetaParser(util::StringLike auto s)
-      : f_(s, std::ios::in | std::ios::binary) {}
+  explicit MetaParser(util::StringLike auto s) : reader_(s, 128) {}
+
+  bool IsFinished() {
+    auto ch = NextNonEmpty();
+    if (ch == EOF) {
+      return true;
+    }
+    UngetCh(ch);
+    return false;
+  }
+
+  Token& GetToken(int idx) { return tokens_[idx]; }
 
  private:
   Char GetCh() {
     if (ch_p_ >= 0) {
       return ch_buf_[ch_p_--];
     }
-    if (f_.eof()) {
+    if (reader_.IsFinished()) {
       return EOF;
     }
-    char buf[4];
-    f_.read(buf, 4);
+    auto buf = reader_.Get4BytesBuf();
     auto [ret, cnt] = util::BytesToCodepoint(buf);
-    for (int i = 4; i > cnt; --i) {
-      f_.unget();
+    if (cnt == 0) {
+      return EOF;
+    }
+    assert(cnt >= 1 && cnt <= 4);
+    for (int i = cnt; i < reader_.LastRead(); ++i) {
+      reader_.Unget();
     }
     return ret;
   }
@@ -71,17 +82,20 @@ class MetaParser {
     return ch;
   }
 
-  std::expected<MetaParserRef, ParserError> RightArrow();
+ public:
+  std::expected<MetaParser*, ParserError> RightArrow();
 
-  std::expected<MetaParserRef, ParserError> Semicolon();
+  std::expected<MetaParser*, ParserError> Semicolon();
 
-  std::expected<MetaParserRef, ParserError> Identifier();
+  std::expected<MetaParser*, ParserError> Identifier();
+
+  std::expected<MetaParser*, ParserError> LiteralPattern();
 
  private:
-  constexpr static size_t BUF_SIZE = 128;
+  constexpr static int BUF_SIZE = 128;
   Char ch_buf_[BUF_SIZE]{};
-  int ch_p_ = 0;
-  std::ifstream f_;
+  int ch_p_ = -1;
+  util::ByteFileReader reader_;
   std::vector<Token> tokens_ = {};
 };
 }  // namespace meta_lang::meta_grammar::parser

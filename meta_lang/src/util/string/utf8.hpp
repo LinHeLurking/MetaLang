@@ -6,7 +6,7 @@
 #include <cstdio>
 
 namespace meta_lang::util {
-int8_t CodepointToBytes(uint32_t ch, char* buf) {
+inline int8_t CodepointToBytes(uint32_t ch, char* buf) {
   std::fill(buf, buf + 4, 0);
   if (ch <= 0x7F) {
     buf[0] = char(ch);
@@ -42,7 +42,7 @@ int8_t CodepointToBytes(uint32_t ch, char* buf) {
   return -1;
 }
 
-std::pair<uint32_t, uint8_t> BytesToCodepoint(const char* buf) {
+inline std::pair<uint32_t, uint8_t> BytesToCodepoint(const char* buf) {
   uint32_t ret = 0;
   uint8_t cnt = 0;
 
