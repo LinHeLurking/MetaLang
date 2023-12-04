@@ -49,15 +49,10 @@ if (META_LANG_BUILD_TESTS)
 
     meta_lang_test(test_meta_grammar meta_lang/test/parser/meta/test_meta_grammar.cc)
     target_link_libraries(test_meta_grammar PUBLIC meta_grammar_parser)
-    meta_lang_test_res_def(test_meta_grammar TEST_GRAMMAR_FILE_1 meta_lang/test/parser/meta/test_1.grammar)
-    meta_lang_test_res_def(test_meta_grammar TEST_GRAMMAR_FILE_2 meta_lang/test/parser/meta/test_2.grammar)
-    meta_lang_test_res_def(test_meta_grammar TEST_GRAMMAR_FILE_3 meta_lang/test/parser/meta/test_3.grammar)
+    meta_lang_test_res_def(test_meta_grammar TEST_GRAMMAR_PATH meta_lang/test/parser/meta/)
 
     meta_lang_test(test_utf8 meta_lang/test/util/string/test_utf8.cc)
 
     meta_lang_test(test_byte_reader meta_lang/test/util/fs/test_byte_reader.cc)
-    meta_lang_test_res_def(test_byte_reader TEST_FILE_EMPTY meta_lang/test/util/fs/empty.txt)
-    meta_lang_test_res_def(test_byte_reader TEST_FILE_LARGE_1 meta_lang/test/util/fs/large_1.txt)
-    meta_lang_test_res_def(test_byte_reader TEST_FILE_SMALL_1 meta_lang/test/util/fs/small_1.txt)
-    meta_lang_test_res_def(test_byte_reader TEST_FILE_SMALL_2 meta_lang/test/util/fs/small_2.txt)
+    meta_lang_test_res_def(test_byte_reader TEST_FILE_PATH meta_lang/test/util/fs/)
 endif ()

@@ -1,17 +1,25 @@
 #include <gtest/gtest.h>
 
+#include <filesystem>
+
 #include "src/util/fs/byte_reader.hpp"
 
 using namespace meta_lang::util;
 
+auto GetPath(const char* f) {
+  std::filesystem::path path(TEST_FILE_PATH);
+  path /= f;
+  return absolute(path).string();
+}
+
 TEST(ByteReader, Empty) {
-  ByteFileReader reader(TEST_FILE_EMPTY, 128);
+  ByteFileReader reader(GetPath("empty.txt"), 128);
   EXPECT_TRUE(reader.IsFinished());
   EXPECT_EQ(reader.LastRead(), 0);
 }
 
 TEST(ByteFileReader, Small_1) {
-  ByteFileReader reader(TEST_FILE_SMALL_1, 128);
+  ByteFileReader reader(GetPath("small_1.txt"), 128);
   auto buf = reader.Get4BytesBuf();
   EXPECT_EQ(buf[0], 'a');
   EXPECT_EQ(buf[1], 'b');
@@ -21,7 +29,7 @@ TEST(ByteFileReader, Small_1) {
 }
 
 TEST(ByteFileReader, Small_2) {
-  ByteFileReader reader(TEST_FILE_SMALL_2, 128);
+  ByteFileReader reader(GetPath("small_2.txt"), 128);
   auto buf = reader.Get4BytesBuf();
   EXPECT_EQ(buf[0], 'a');
   EXPECT_EQ(buf[1], 'b');
@@ -37,8 +45,8 @@ TEST(ByteFileReader, Small_2) {
 }
 
 TEST(ByteFileReader, Large_1) {
-  ByteFileReader reader(TEST_FILE_LARGE_1, 128);
-  char *buf;
+  ByteFileReader reader(GetPath("large_1.txt"), 128);
+  char* buf;
   for (int i = 0; i < 10; ++i) {
     if (i % 4 == 0) {
       buf = reader.Get4BytesBuf();
@@ -67,7 +75,7 @@ TEST(ByteFileReader, Large_1) {
 }
 
 TEST(ByteFileReader, BeyondUnget) {
-  ByteFileReader reader(TEST_FILE_SMALL_1, 128);
+  ByteFileReader reader(GetPath("small_1.txt"), 128);
   reader.Get4BytesBuf();
   EXPECT_TRUE(reader.IsFinished());
   EXPECT_TRUE(reader.Unget());

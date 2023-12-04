@@ -1,11 +1,19 @@
 #include <gtest/gtest.h>
 
+#include <filesystem>
+
 #include "src/parser/meta/meta_grammar.hpp"
 
 using namespace meta_lang::meta_grammar::parser;
 
+auto GetPath(const char *f) {
+  std::filesystem::path path(TEST_GRAMMAR_PATH);
+  path /= f;
+  return absolute(path).string();
+}
+
 TEST(MetaGrammar, Parser_1) {
-  auto parser = MetaParser(TEST_GRAMMAR_FILE_1);
+  auto parser = MetaParser(GetPath("test_1.grammar"));
   ASSERT_TRUE(parser.Identifier().has_value());
   ASSERT_TRUE(parser.RightArrow().has_value());
   ASSERT_TRUE(parser.StrLiteral().has_value());
@@ -37,7 +45,7 @@ TEST(MetaGrammar, Parser_1) {
 }
 
 TEST(MetaGrammar, Parser_2) {
-  auto parser = MetaParser(TEST_GRAMMAR_FILE_2);
+  auto parser = MetaParser(GetPath("test_2.grammar"));
   while (!parser.IsFinished()) {
     auto res = parser.Identifier()
                    .and_then([](auto self) { return self->RightArrow(); })
@@ -89,7 +97,7 @@ TEST(MetaGrammar, Parser_2) {
 }
 
 TEST(MetaGrammar, ParserStrLiteralUnion) {
-  auto parser = MetaParser(TEST_GRAMMAR_FILE_3);
+  auto parser = MetaParser(GetPath("test_3.grammar"));
   auto res = parser.Tokenize();
   ASSERT_TRUE(res.has_value());
 
@@ -147,7 +155,7 @@ TEST(MetaGrammar, ParserStrLiteralUnion) {
 }
 
 TEST(MetaGrammar, ParserAst) {
-  auto parser = MetaParser(TEST_GRAMMAR_FILE_3);
+  auto parser = MetaParser(GetPath("test_3.grammar"));
   {
     auto res = parser.Tokenize();
     ASSERT_TRUE(res.has_value());
