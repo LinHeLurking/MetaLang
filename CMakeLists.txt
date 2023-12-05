@@ -56,6 +56,6 @@ if (META_LANG_BUILD_TESTS)
     meta_lang_test(test_byte_reader meta_lang/test/util/fs/test_byte_reader.cc)
     meta_lang_test_res_def(test_byte_reader TEST_FILE_PATH meta_lang/test/util/fs/)
 
-    meta_lang_test(test_file_range_builder meta_lang/test/util/fs/test_file_range_builder.cc)
-    meta_lang_test_res_def(test_file_range_builder TEST_FILE_PATH meta_lang/test/util/fs/)
+    meta_lang_test(test_file_range meta_lang/test/util/fs/test_file_range_builder.cc)
+    meta_lang_test_res_def(test_file_range TEST_FILE_PATH meta_lang/test/util/fs/)
 endif ()
