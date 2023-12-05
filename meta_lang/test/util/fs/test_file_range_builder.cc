@@ -16,6 +16,14 @@ auto GetPath(const char* f) {
 TEST(FileRange, Raw) {
   auto fr = E_TRY(FileRange::Create(GetPath("with_space.txt")));
   {
+    auto it = fr.begin();
+    EXPECT_EQ(*it, '1');
+    ++it;
+    EXPECT_EQ(*it, '2');
+    --it;
+    EXPECT_EQ(*it, '1');
+  }
+  {
     auto s = std::ranges::to<std::string>(fr);
     EXPECT_EQ(s, "123 abc 456 xyz");
   }

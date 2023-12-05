@@ -19,39 +19,71 @@ class FileRange {
  public:
   class Iterator {
    public:
-    using iterator_concept = std::input_iterator_tag;
     using difference_type = std::ptrdiff_t;
     using value_type = char;
-
     Iterator() = default;
-    explicit Iterator(char* cur, char* end) : cur_(cur), end_(end) {}
 
     Iterator& operator++() noexcept {
-      if (cur_ < end_) cur_++;
+      if (p_ < size_) {
+        p_++;
+      }
       return *this;
     }
 
-    void operator++(int) noexcept { ++*this; }
-
-    bool operator==(const Iterator& rhs) const noexcept {
-      return cur_ == rhs.cur_;
+    Iterator operator++(int) noexcept {
+      auto tmp = *this;
+      ++*this;
+      return tmp;
     }
 
-    bool operator!=(const Iterator& rhs) const noexcept {
-      return !(rhs == *this);
+    Iterator& operator--() noexcept {
+      if (p_ > 0) --p_;
+      return *this;
     }
 
-    char& operator*() const noexcept { return *cur_; }
+    Iterator operator--(int) noexcept {
+      auto tmp = *this;
+      --*this;
+      return tmp;
+    }
+
+    char& operator*() const noexcept {
+      fsetpos(f_, &p_);
+#ifndef NDEBUG
+      int64_t pos = -1;
+      auto err = fgetpos(f_, &pos);
+      assert(err == 0);
+      assert(pos == p_);
+#endif
+      auto cnt = fread(const_cast<char*>(&buf_), 1, 1, f_);
+      auto& ret = const_cast<char&>(buf_);
+      assert(cnt == 0 || cnt == 1);
+      if (cnt == 0) {
+        ret = EOF;
+      }
+      return ret;
+    }
+
+    bool operator==(const Iterator& rhs) const {
+      return f_ == rhs.f_ && p_ == rhs.p_;
+    }
+
+    bool operator!=(const Iterator& rhs) const { return !(rhs == *this); }
 
    private:
     friend class FileRange;
-    char* cur_ = nullptr;
-    char* end_ = nullptr;
+
+    Iterator(FILE* f, int64_t p, int64_t size)
+        : f_(f), p_(p), size_(size), buf_(0) {}
+    FILE* f_;
+    int64_t p_;
+    int64_t size_;
+    char buf_;
   };
   // ensure this is a valid range
   static_assert(std::input_iterator<Iterator>);
-  // don't know why not satisfied :(
-  // static_assert(std::forward_iterator<Iterator>);
+  static_assert(std::forward_iterator<Iterator>);
+  static_assert(std::bidirectional_iterator<Iterator>);
 
   enum Error {
     kFileRead,
@@ -64,26 +96,43 @@ class FileRange {
     if (err != 0) {
       return std::unexpected(kFileRead);
     }
-    fseek(fr.f_, 0, SEEK_END);
-    size_t len = ftell(fr.f_);
-    rewind(fr.f_);
-    fr.buf_ = new char[len + 1];
-    fr.end_ = fr.buf_ + len;
-    fread(fr.buf_, 1, len, fr.f_);
-    fr.buf_[len] = EOF;
+    err = fseek(fr.f_, 0, SEEK_END);
+    if (err != 0) {
+      return std::unexpected(kFileRead);
+    }
+    int64_t len;
+    err = fgetpos(fr.f_, &len);
+    if (err != 0) {
+      return std::unexpected(kFileRead);
+    }
+    err = fseek(fr.f_, 0, SEEK_SET);
+    if (err != 0) {
+      return std::unexpected(kFileRead);
+    }
+    int64_t pos = -1;
+    err = fgetpos(fr.f_, &pos);
+    if (err != 0) {
+      return std::unexpected(kFileRead);
+    }
+    assert(pos == 0);
+    fr.size_ = len;
     return fr;
   }
 
-  Iterator begin() { return Iterator(buf_, end_); }
-  Iterator end() { return Iterator(end_, end_); }
+  Iterator begin() { return {f_, 0, size_}; }
+  Iterator end() { return {f_, size_, size_}; }
+
+  // ~FileRange() { fclose(f_); }
 
  private:
   FileRange() = default;
   FILE* f_;
-  char* buf_;
-  char* end_;
+  int64_t size_;
 };
+// ensure range concepts are satisfied
 static_assert(std::ranges::range<FileRange>);
+static_assert(std::ranges::forward_range<FileRange>);
+static_assert(std::ranges::bidirectional_range<FileRange>);
 }  // namespace meta_lang::util
 
 #endif  // METALANG_FILE_RANGE_HPP
