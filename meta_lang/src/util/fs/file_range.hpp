@@ -15,7 +15,7 @@
 
 namespace meta_lang::util {
 
-class FileRange {
+class FileRange : public std::ranges::view_interface<FileRange> {
  public:
   class Iterator {
    public:
@@ -133,6 +133,8 @@ class FileRange {
 static_assert(std::ranges::range<FileRange>);
 static_assert(std::ranges::forward_range<FileRange>);
 static_assert(std::ranges::bidirectional_range<FileRange>);
+// ensure this can be used as view
+static_assert(std::ranges::view<FileRange>);
 }  // namespace meta_lang::util
 
 #endif  // METALANG_FILE_RANGE_HPP
