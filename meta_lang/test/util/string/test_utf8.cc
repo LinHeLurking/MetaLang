@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "src/util/string/utf8.hpp"
+#include "src/util/utf8.hpp"
 
 using namespace meta_lang;
 

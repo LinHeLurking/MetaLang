@@ -3,8 +3,8 @@
 
 #include <gtest/gtest.h>
 
-#ifndef E_TRY
-#define E_TRY(expr)          \
+#ifndef T_TRY
+#define T_TRY(expr)          \
   ({                       \
     auto _v = (expr);      \
     ASSERT_TRUE(bool(_v)); \
