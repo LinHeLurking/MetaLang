@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 
 #ifndef T_TRY
-#define T_TRY(expr)          \
+#define T_TRY(expr)        \
   ({                       \
     auto _v = (expr);      \
     ASSERT_TRUE(bool(_v)); \

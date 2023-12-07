@@ -2,173 +2,28 @@
 
 #include <unordered_map>
 
+#include "src/util/macro_map.hpp"
+
 namespace meta_lang::parser {
 
-std::expected<std::deque<TokenPtr>, Lexer::Error>
-meta_lang::parser::Lexer::Tokenize(char *p) {
+std::expected<Lexer::StreamT, Lexer::Error> meta_lang::parser::Lexer::Tokenize(
+    const char *p) const {
   int state = int(State::kStart);
   std::deque<TokenPtr> stream;
-  int token_len = 0;
-  do {
-    // cls is pre-multiplied
-    int cls = int(ch_eq_[*p++]);
-    state = int(transition_[state + cls]);
-    if (state > LAST_MIX_STATE) continue;
-    auto s = State(state);
-    switch (s) {
-      default:
-        break;
-      case State::kAddMixStart: {
-        char ch = *p;
-        if (ch != '+' && ch != '=') {
-          state = int(State::kAddEnd);
-        }
-        break;
-      }
-      case State::kSubMixStart: {
-        char ch = *p;
-        if (ch != '-' && ch != '=') {
-          state = int(State::kSubEnd);
-        }
-        break;
-      }
-      case State::kMulMixStart: {
-        char ch = *p;
-        if (ch != '=') {
-          state = int(State::kMulEnd);
-        }
-        break;
-      }
-      case State::kSlashMixStart: {
-        char ch = *p;
-        if (ch != '/') {
-          state = int(State::kDivEnd);
-        }
-        break;
-      }
-      case State::kModMixStart: {
-        char ch = *p;
-        if (ch != '=') {
-          state = int(State::kModEnd);
-        }
-        break;
-      }
-      case State::kLessMixStart: {
-        char ch = *p;
-        if (ch != '=') {
-          state = int(State::kLessEnd);
-        }
-        break;
-      }
-      case State::kGreaterMixStart: {
-        char ch = *p;
-        if (ch != '=') {
-          state = int(State::kGreaterEnd);
-        }
-        break;
-      }
-      case State::kEqMixStart: {
-        char ch = *p;
-        if (ch != '=') {
-          state = int(State::kAssignEnd);
-        }
-        break;
-      }
-      case State::kNotMixStart: {
-        char ch = *p;
-        if (ch != '=') {
-          state = int(State::kNotEnd);
-        }
-        break;
-      }
-    }
-  } while (state > LAST_END_STATE);
-
-  State s = State(state);
-  using enum Token::Type;
-  switch (s) {
-    default: {
-      E_RET(Error::kNotImplemented);
-    }
-    case State::kAddEnd: {
-      stream.emplace_back(kAdd);
-      break;
-    }
-    case State::kAddEqEnd: {
-      stream.emplace_back(kAddEq);
-      break;
-    }
-    case State::kSubEnd: {
-      stream.emplace_back(kSub);
-      break;
-    }
-    case State::kSubEqEnd: {
-      stream.emplace_back(kSubEq);
-      break;
-    }
-    case State::kMulEnd: {
-      stream.emplace_back(kMul);
-      break;
-    }
-    case State::kMulEqEnd: {
-      stream.emplace_back(kMulEq);
-      break;
-    }
-    case State::kDivEnd: {
-      stream.emplace_back(kDiv);
-      break;
-    }
-    case State::kDivEqEnd: {
-      stream.emplace_back(kDivEq);
-      break;
-    }
-    case State::kModEnd: {
-      stream.emplace_back(kMod);
-      break;
-    }
-    case State::kModEqEnd: {
-      stream.emplace_back(kModEq);
-      break;
-    }
-    case State::kIncEnd: {
-      stream.emplace_back(kInc);
-      break;
-    }
-    case State::kDecEnd: {
-      stream.emplace_back(kDec);
-      break;
-    }
-    case State::kAssignEnd: {
-      stream.emplace_back(kAssign);
-      break;
-    }
-    case State::kEqEnd: {
-      stream.emplace_back(kEq);
-      break;
-    }
-    case State::kNotEqEnd: {
-      stream.emplace_back(kNotEq);
-      break;
-    }
-    case State::kLessEnd: {
-      stream.emplace_back(kLess);
-      break;
-    }
-    case State::kGreaterEnd: {
-      stream.emplace_back(kGreater);
-      break;
-    }
-    case State::kLessEqEnd: {
-      stream.emplace_back(kLessEq);
-      break;
-    }
-    case State::kGreaterEqEnd: {
-      stream.emplace_back(kGreaterEq);
-      break;
-    }
-    case State::kNotEnd: {
-      stream.emplace_back(kNot);
-    }
+  if (*p == EOF) {
+    return stream;
+  }
+  // debug helper
+  auto &_s = reinterpret_cast<State &>(state);
+  for (; state != int(State::kEOFEnd);) {
+    do {
+      // cls is pre-multiplied
+      int cls = ChEqPreMul(*p++);
+      state = int(transition_[state + cls]);
+      if (state > LAST_MIX_STATE) continue;
+      std::tie(state, p) = LookAhead(state, p);
+    } while (state > LAST_END_STATE);
+    AddToken(stream, State(state));
   }
   return stream;
 }
@@ -177,8 +32,7 @@ Lexer::Lexer() {
   constexpr int n_cls = int(CharEq::CHAR_EQ_MAX);
   // Set default error entries
   std::fill(ch_eq_, ch_eq_ + ALPHABET_SIZE, int(CharEq::kError));
-  std::fill(transition_, transition_ + TransitionTableSize,
-            int(State::kError) * n_cls);
+  std::fill(transition_, transition_ + TransitionTableSize, int(State::kError));
 
   // Fill character equivalent table
   for (int i = 0; i < 26; ++i) {
@@ -189,10 +43,10 @@ Lexer::Lexer() {
     ChEq('0' + i, CharEq::kNum);
   }
   ChEq(' ', CharEq::kWhitespace);
-  ChEq('\n', CharEq::kWhitespace);
-  ChEq('\r', CharEq::kWhitespace);
+  ChEq('\n', CharEq::kNewline);
   ChEq(EOF, CharEq::kEOF);  // pay attention to EOF!
   ChEq('_', CharEq::kUnderscore);
+  ChEq('+', CharEq::kAdd);
   ChEq('-', CharEq::kHyphen);
   ChEq('*', CharEq::kStar);
   ChEq('/', CharEq::kSlash);
@@ -211,6 +65,7 @@ Lexer::Lexer() {
   ChEq('>', CharEq::kGreater);
   ChEq(';', CharEq::kSemicolon);
   ChEq('.', CharEq::kDot);
+  ChEq('!', CharEq::kNot);
   // Fill transition table
 
   using enum State;
@@ -220,9 +75,10 @@ Lexer::Lexer() {
       Transition(State(i), '\'', kCharLiteralStart);
     }
     for (int i = 0; i < n_cls; ++i) {
-      if (CharEq(i) == CharEq::kEOF) continue;
-      Transition(kCharLiteralStart, CharEq(i), kCharLiteralSpin);
-      Transition(kCharLiteralSpin, CharEq(i), kCharLiteralSpin);
+      auto cls = CharEq(i);
+      if (cls == CharEq::kEOF || cls == CharEq::kSingleQuote) continue;
+      Transition(kCharLiteralStart, cls, kCharLiteralSpin);
+      Transition(kCharLiteralSpin, cls, kCharLiteralSpin);
     }
     Transition(kCharLiteralStart, '\'', kCharLiteralEnd);
     Transition(kCharLiteralSpin, '\'', kCharLiteralEnd);
@@ -233,9 +89,10 @@ Lexer::Lexer() {
       Transition(State(i), '"', kStrLiteralStart);
     }
     for (int i = 0; i < n_cls; ++i) {
-      if (CharEq(i) == CharEq::kEOF) continue;
-      Transition(kStrLiteralStart, CharEq(i), kStrLiteralSpin);
-      Transition(kStrLiteralSpin, CharEq(i), kStrLiteralSpin);
+      auto cls = CharEq(i);
+      if (cls == CharEq::kEOF || cls == CharEq::kDoubleQuote) continue;
+      Transition(kStrLiteralStart, cls, kStrLiteralSpin);
+      Transition(kStrLiteralSpin, cls, kStrLiteralSpin);
     }
     Transition(kStrLiteralStart, '"', kStrLiteralEnd);
     Transition(kStrLiteralSpin, '"', kStrLiteralEnd);
@@ -266,12 +123,15 @@ Lexer::Lexer() {
   // SlashMix
   {
     for (int i = 0; i < LAST_END_STATE; ++i) {
-      Transition(State(i), '/', kSlashMixStart);
+      auto state = State(i);
+      Transition(state, '/', kSlashMixStart);
     }
     Transition(kSlashMixStart, '/', kCommentSpin);
     Transition(kSlashMixStart, '=', kDivEqEnd);
     for (int i = 0; i < n_cls; ++i) {
-      Transition(kCommentSpin, CharEq(i), kCommentSpin);
+      auto cls = CharEq(i);
+      if (cls == CharEq::kNewline) continue;
+      Transition(kCommentSpin, cls, kCommentSpin);
     }
     Transition(kCommentSpin, '\n', kCommentEnd);
   }
@@ -322,10 +182,153 @@ Lexer::Lexer() {
       auto state = State(i);
       for (const auto [ch, target_state] : m) {
         // skip already set entries
-        if (GetTransition(state, ch) != kError) continue;
+        if (Transition(state, ch) != kError) continue;
         Transition(state, ch, target_state);
       }
     }
+    // EOF
+    {
+      for (int i = 0; i <= LAST_END_STATE; ++i) {
+        auto state = State(i);
+        Transition(state, ChEq(EOF), kEOFEnd);
+      }
+    }
   }
+}
+
+std::tuple<int, const char *> Lexer::LookAhead(int state, const char *p) {
+  using enum State;
+  auto s = State(state);
+  switch (s) {
+    default:
+      break;
+    case kAddMixStart: {
+      char ch = *p;
+      if (ch == '+') {
+        s = kIncEnd;
+        ++p;
+      } else if (ch == '=') {
+        s = kAddEqEnd;
+        ++p;
+      } else {
+        s = kAddEnd;
+      }
+      break;
+    }
+    case kSubMixStart: {
+      char ch = *p;
+      if (ch == '-') {
+        s = kDecEnd;
+        ++p;
+      } else if (ch == '=') {
+        s = kSubEqEnd;
+        ++p;
+      } else {
+        s = kSubEnd;
+      }
+      break;
+    }
+    case kMulMixStart: {
+      char ch = *p;
+      if (ch == '=') {
+        s = kMulEqEnd;
+        ++p;
+      } else {
+        s = kMulEnd;
+      }
+      break;
+    }
+    case kSlashMixStart: {
+      char ch = *p;
+      if (ch == '=') {
+        s = kDivEqEnd;
+        ++p;
+      } else {
+        s = kDivEnd;
+      }
+      break;
+    }
+    case kModMixStart: {
+      char ch = *p;
+      if (ch == '=') {
+        s = kModEqEnd;
+        ++p;
+      } else {
+        s = kModEnd;
+      }
+      break;
+    }
+    case kLessMixStart: {
+      char ch = *p;
+      if (ch == '=') {
+        s = kLessEqEnd;
+        ++p;
+      } else {
+        s = kLessEnd;
+      }
+      break;
+    }
+    case kGreaterMixStart: {
+      char ch = *p;
+      if (ch == '=') {
+        s = kGreaterEqEnd;
+        ++p;
+      } else {
+        s = kGreaterEnd;
+      }
+      break;
+    }
+    case kEqMixStart: {
+      char ch = *p;
+      if (ch == '=') {
+        s = kEqEnd;
+        ++p;
+      } else {
+        s = kAssignEnd;
+      }
+      break;
+    }
+    case kNotMixStart: {
+      char ch = *p;
+      if (ch == '=') {
+        s = kNotEqEnd;
+        ++p;
+      } else {
+        s = kNotEnd;
+      }
+      break;
+    }
+  }
+  return {int(s), p};
+}
+
+void Lexer::AddToken(Lexer::StreamT &stream, Lexer::State state) {
+  auto s = State(state);
+  using enum Token::Type;
+#define ADD_TOKEN(t)        \
+  case State::t##End: {     \
+    stream.emplace_back(t); \
+    break;                  \
+  }
+  // ensure that if more states are added, compiler produces error to help you
+  // change map counter.
+
+  // 1st state is kStart, 2nd is kError, LAST_END_STATE is kEOFEnd
+  static_assert(LAST_END_STATE - 2 + 1 == 51);  // 51 ending states
+  switch (s) {
+    default: {
+      assert(false);
+    }
+      MACRO_MAP(51, ADD_TOKEN, kStrLiteral, kCharLiteral, kInt32Literal,
+                kInt64Literal, kUint32Literal, kUint64Literal, kFloatLiteral,
+                kDoubleLiteral, kVal, kFunc, kReturn, kIf, kFor, kBreak, kTrue,
+                kFalse, kStringType, kInt32Type, kInt64Type, kUInt32Type,
+                kUint64Type, kAdd, kAddEq, kSub, kSubEq, kMul, kMulEq, kDiv,
+                kDivEq, kMod, kModEq, kInc, kDec, kAssign, kEq, kNotEq, kLess,
+                kGreater, kLessEq, kGreaterEq, kNot, kComment, kDot, kSemicolon,
+                kLeftParen, kRightParen, kLeftCurlyBracket, kRightCurlyBracket,
+                kLeftBracket, kRightBracket, kEOF);
+  }
+#undef ADD_TOKEN
 }
 }  // namespace meta_lang::parser
