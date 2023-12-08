@@ -122,3 +122,28 @@ TEST_F(LexerTest, CharLiteralEscape_1) {
   auto stream = T_TRY(lexer_.Tokenize(p));
   Check(stream, tokens);
 }
+
+TEST_F(LexerTest, StrLiteral) {
+#define LITERAL "slakdjflkas asl;kjfkl sfkljaslk kslaf' aslkdfj las alskjdf l120-398-012"
+  const char *p = "\"" LITERAL "\"\xFF";
+  std::vector<TokenPtr> tokens = {
+      TokenPtr(kStrLiteral, LITERAL),
+      TokenPtr(kEOF),
+  };
+  auto stream = T_TRY(lexer_.Tokenize(p));
+  Check(stream, tokens);
+#undef LITERAL
+}
+
+
+TEST_F(LexerTest, StrLiteralEscape_0) {
+#define LITERAL "slakdjflkas asl;kjf\\\"kl sf\\\nkljas\\\"lk kslaf'''-398-012"
+  const char *p = "\"" LITERAL "\"\xFF";
+  std::vector<TokenPtr> tokens = {
+      TokenPtr(kStrLiteral, LITERAL),
+      TokenPtr(kEOF),
+  };
+  auto stream = T_TRY(lexer_.Tokenize(p));
+  Check(stream, tokens);
+#undef LITERAL
+}

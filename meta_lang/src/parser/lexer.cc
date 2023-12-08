@@ -259,11 +259,15 @@ void Lexer::FillTransitionTable() noexcept {
     }
     for (int i = 0; i < n_cls; ++i) {
       auto cls = CharEq(i);
-      if (cls == CharEq::kEOF || cls == CharEq::kDoubleQuote) continue;
+      if (cls == CharEq::kEOF) continue;
+      Transition(kStrLiteralEscape, cls, kStrLiteralSpin);
+      if (cls == CharEq::kDoubleQuote || cls == CharEq::kBackSlash) continue;
       Transition(kStrLiteralStart, cls, kStrLiteralSpin);
       Transition(kStrLiteralSpin, cls, kStrLiteralSpin);
     }
     Transition(kStrLiteralStart, '"', kStrLiteralEnd);
+    Transition(kStrLiteralStart, '\\', kStrLiteralEscape);
+    Transition(kStrLiteralSpin, '\\', kStrLiteralEscape);
     Transition(kStrLiteralSpin, '"', kStrLiteralEnd);
   }
   // AddMix
