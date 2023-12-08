@@ -30,6 +30,7 @@ enum class LexerState {
   kError,  // Error state.
   kStrLiteralEnd,
   kCharLiteralEnd,
+  kIntLiteralEnd,
   kInt32LiteralEnd,
   kInt64LiteralEnd,
   kUint32LiteralEnd,
@@ -96,6 +97,8 @@ enum class LexerState {
   kLessMixStart,
   kGreaterMixStart,
   kEqMixStart,
+  kNumMixStart,
+  kDotMixStart,
   kNotMixStart,
   //
   // All mix start states are above. You can easily check if current token is
@@ -114,25 +117,10 @@ enum class LexerState {
   kStrLiteralEscape,
   kStrLiteralSpin,
   //
-  kNumStart,
   kNumSpin,
-  kNumSciSpin,  // spin on exponential part
-  kNumSpinI,    // 'i' in 456i32
-  kNumSpinI3,   // '3' in 456i32
-  kNumSpinI2,   // '2' in 456i32
-  kNumSpinI6,   // '6' in 123i64
-  kNumSpinI4,   // '4' in 123i64
-  kNumSpinU,    // 'i' in 456u32
-  kNumSpinU3,   // '3' in 456u32
-  kNumSpinU2,   // '2' in 456u32
-  kNumSpinU6,   // '6' in 123u64
-  kNumSpinU4,   // '4' in 123u64
-  // scientific number doesn't have suffix sping because they only have 1 char
-  // tail 'd' or 'f'.
-
   // counter
   STATUS_MAX,
 };
-}  // namespace meta_lang::parser::_lexer_detail
+}  // namespace meta_lang::parser
 
 #endif  // METALANG_LEXER_STATE_HPP

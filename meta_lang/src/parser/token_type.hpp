@@ -8,6 +8,7 @@ enum class TokenType {
   // literals
   kStrLiteral,
   kCharLiteral,
+  kIntLiteral,  // int literal is unspcified int type.
   kInt32Literal,
   kInt64Literal,
   kUint32Literal,
@@ -72,6 +73,6 @@ inline std::ostream& operator<<(std::ostream& os, TokenType t) {
   return os;
 }
 
-}  // namespace meta_lang::parser::_lexer_detail
+}  // namespace meta_lang::parser
 
 #endif  // METALANG_TOKEN_TYPE_HPP

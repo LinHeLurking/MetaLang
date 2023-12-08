@@ -6,7 +6,7 @@
 
 namespace meta_lang::parser {
 
-std::expected<Lexer::StreamT, Lexer::Error> meta_lang::parser::Lexer::Tokenize(
+std::expected<Lexer::StreamT, Lexer::Error> Lexer::Tokenize(
     const char *p) const {
   int state = int(State::kStart);
   std::deque<TokenPtr> stream;
@@ -37,7 +37,8 @@ Lexer::Lexer() {
   FillTransitionTable();
 }
 
-std::tuple<int, const char *> Lexer::LookAhead(int state, const char *p) {
+std::tuple<int, const char *> Lexer::LookAhead(int state,
+                                               const char *p) noexcept {
   using enum State;
   auto s = State(state);
   switch (s) {
@@ -139,6 +140,66 @@ std::tuple<int, const char *> Lexer::LookAhead(int state, const char *p) {
       }
       break;
     }
+    case kDotMixStart: {
+      if (char ch = *p; ch >= '0' && ch <= '9') {
+        s = kNumMixStart;
+        // this is indented fall through.
+      } else {
+        s = kDotEnd;
+        break;
+      }
+    }
+    case kNumMixStart: {
+      for (; *p >= '0' && *p <= '9'; ++p) {
+      }
+      s = kIntLiteralEnd;
+      if (*p == 'u') {
+        p++;
+        if (*p == '3' && *(p + 1) == '2') {
+          p += 2;
+          s = kUint32LiteralEnd;
+        }
+        if (*p == '6' && *(p + 1) == '4') {
+          p += 2;
+          s = kUint64LiteralEnd;
+        }
+        break;
+      }
+      if (*p == 'i') {
+        p++;
+        if (*p == '3' && *(p + 1) == '2') {
+          p += 2;
+          s = kInt32LiteralEnd;
+        }
+        if (*p == '6' && *(p + 1) == '4') {
+          p += 2;
+          s = kInt64LiteralEnd;
+        }
+      }
+      if (*p == '.') {
+        p++;
+        for (; *p >= '0' && *p < '9'; ++p) {
+        }
+        s = kFloatLiteralEnd;
+      }
+      if (*p == 'e') {
+        p++;
+        for (; *p >= '0' && *p <= '9'; ++p) {
+        }
+        s = kDoubleLiteralEnd;
+        if (*p == 'f') {
+          s = kError;
+        }
+      }
+      if (s != kError && *p == 'f') {
+        ++p;
+        s = kFloatLiteralEnd;
+      } else if (s != kError && *p == 'd') {
+        ++p;
+        s = kDoubleLiteralEnd;
+      }
+      break;
+    }
   }
   return {int(s), p};
 }
@@ -146,9 +207,10 @@ std::tuple<int, const char *> Lexer::LookAhead(int state, const char *p) {
 std::expected<int, Lexer::Error> Lexer::AddToken(Lexer::StreamT &stream,
                                                  Lexer::State state,
                                                  const char *token_begin,
-                                                 size_t token_len) {
+                                                 size_t token_len) noexcept {
   auto s = State(state);
   using enum TokenType;
+
 #define ADD_TOKEN(t)                                            \
   case State::t##End: {                                         \
     switch (t) {                                                \
@@ -170,6 +232,15 @@ std::expected<int, Lexer::Error> Lexer::AddToken(Lexer::StreamT &stream,
         stream.emplace_back(t, token_begin + 1, token_len - 2); \
         break;                                                  \
       }                                                         \
+      case TokenType::kIntLiteral:                              \
+      case TokenType::kInt64Literal:                            \
+      case TokenType::kUint32Literal:                           \
+      case TokenType::kUint64Literal:                           \
+      case TokenType::kFloatLiteral:                            \
+      case TokenType::kDoubleLiteral: {                         \
+        stream.emplace_back(t, token_begin, token_len);         \
+        break;                                                  \
+      }                                                         \
     };                                                          \
     break;                                                      \
   }
@@ -177,21 +248,21 @@ std::expected<int, Lexer::Error> Lexer::AddToken(Lexer::StreamT &stream,
   // change map counter.
 
   // 1st state is kStart, 2nd is kError, LAST_END_STATE is kEOFEnd
-  static_assert(LAST_END_STATE - 2 + 1 == 51);  // 51 ending states
+  static_assert(LAST_END_STATE - 2 + 1 == 52);  // 52 ending states
   switch (s) {
     default: {
       assert(false && "Error ending state!");
       E_RET(Error::kErrorChar);
     }
-      MACRO_MAP(51, ADD_TOKEN, kStrLiteral, kCharLiteral, kInt32Literal,
-                kInt64Literal, kUint32Literal, kUint64Literal, kFloatLiteral,
-                kDoubleLiteral, kVal, kFunc, kReturn, kIf, kFor, kBreak, kTrue,
-                kFalse, kStringType, kInt32Type, kInt64Type, kUInt32Type,
-                kUint64Type, kAdd, kAddEq, kSub, kSubEq, kMul, kMulEq, kDiv,
-                kDivEq, kMod, kModEq, kInc, kDec, kAssign, kEq, kNotEq, kLess,
-                kGreater, kLessEq, kGreaterEq, kNot, kComment, kDot, kSemicolon,
-                kLeftParen, kRightParen, kLeftCurlyBracket, kRightCurlyBracket,
-                kLeftBracket, kRightBracket, kEOF);
+      MACRO_MAP(52, ADD_TOKEN, kStrLiteral, kCharLiteral, kIntLiteral,
+                kInt32Literal, kInt64Literal, kUint32Literal, kUint64Literal,
+                kFloatLiteral, kDoubleLiteral, kVal, kFunc, kReturn, kIf, kFor,
+                kBreak, kTrue, kFalse, kStringType, kInt32Type, kInt64Type,
+                kUInt32Type, kUint64Type, kAdd, kAddEq, kSub, kSubEq, kMul,
+                kMulEq, kDiv, kDivEq, kMod, kModEq, kInc, kDec, kAssign, kEq,
+                kNotEq, kLess, kGreater, kLessEq, kGreaterEq, kNot, kComment,
+                kDot, kSemicolon, kLeftParen, kRightParen, kLeftCurlyBracket,
+                kRightCurlyBracket, kLeftBracket, kRightBracket, kEOF);
   }
 #undef ADD_TOKEN
   return 0;
@@ -343,6 +414,18 @@ void Lexer::FillTransitionTable() noexcept {
     }
     Transition(kEqMixStart, '=', kEqEnd);
   }
+  // NumMix
+  {
+    for (int i = 0; i < LAST_END_STATE; ++i) {
+      Transition(State(i), CharEq::kNum, kNumMixStart);
+    }
+  }
+  // DotMix
+  {
+    for (int i = 0; i < LAST_END_STATE; ++i) {
+      Transition(State(i), CharEq::kDot, kDotMixStart);
+    }
+  }
   // NotMix
   {
     for (int i = 0; i < LAST_END_STATE; ++i) {
@@ -353,10 +436,10 @@ void Lexer::FillTransitionTable() noexcept {
   // single char token
   {
     std::unordered_map<char, State> m = {
-        {';', kSemicolonEnd},        {'.', kDotEnd},
-        {'(', kLeftParenEnd},        {')', kRightParenEnd},
-        {'[', kLeftBracketEnd},      {']', kRightBracketEnd},
-        {'{', kLeftCurlyBracketEnd}, {'}', kRightCurlyBracketEnd},
+        {';', kSemicolonEnd},         {'(', kLeftParenEnd},
+        {')', kRightParenEnd},        {'[', kLeftBracketEnd},
+        {']', kRightBracketEnd},      {'{', kLeftCurlyBracketEnd},
+        {'}', kRightCurlyBracketEnd},
     };
     for (int i = 0; i <= LAST_END_STATE; ++i) {
       auto state = State(i);

@@ -84,11 +84,15 @@ class Lexer {
     return ch_eq_[int(uint8_t(ch))];
   }
 
+  inline bool IsChEq(char ch, CharEq cls) const {
+    return ch_eq_[int(uint8_t(ch))] == int(cls) * int(CharEq::CHAR_EQ_MAX);
+  }
+
   static inline std::tuple<int, const char*> LookAhead(int state,
-                                                       const char* p);
+                                                const char* p) noexcept;
   static inline std::expected<int, Error> AddToken(StreamT& stream, State state,
-                                                   const char* token_begin,
-                                                   size_t token_len);
+                                            const char* token_begin,
+                                            size_t token_len) noexcept;
 
   void FillChEq() noexcept;
   void FillTransitionTable() noexcept;

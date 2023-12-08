@@ -26,7 +26,7 @@ class LexerTest : public testing::Test {
 };
 
 void Check(const Lexer::StreamT &stream, const std::vector<TokenPtr> &tokens) {
-  EXPECT_EQ(stream.size(), tokens.size());
+  ASSERT_EQ(stream.size(), tokens.size());
   using enum TokenType;
   auto i = stream.begin();
   auto j = tokens.begin();
@@ -147,4 +147,65 @@ TEST_F(LexerTest, StrLiteralEscape_0) {
   auto stream = T_TRY(lexer_.Tokenize(p));
   Check(stream, tokens);
 #undef LITERAL
+}
+
+TEST_F(LexerTest, NumLiteralInt_0) {
+  const char *p = "123321;90219;\xFF";
+  std::vector<TokenPtr> tokens = {
+      TokenPtr(kIntLiteral, "123321"),
+      TokenPtr(kSemicolon),
+      TokenPtr(kIntLiteral, "90219"),
+      TokenPtr(kSemicolon),
+      TokenPtr(kEOF),
+  };
+  auto stream = T_TRY(lexer_.Tokenize(p));
+  Check(stream, tokens);
+}
+
+TEST_F(LexerTest, NumLiteralInt_1) {
+  const char *p = "123u32;321u64;123i32;0912380989342i64\xFF";
+  std::vector<TokenPtr> tokens = {
+      TokenPtr(kUint32Literal, "123u32"),          TokenPtr(kSemicolon),
+      TokenPtr(kUint64Literal, "321u64"),          TokenPtr(kSemicolon),
+      TokenPtr(kInt32Literal, "123i32"),           TokenPtr(kSemicolon),
+      TokenPtr(kInt64Literal, "0912380989342i64"), TokenPtr(kEOF),
+  };
+  auto stream = T_TRY(lexer_.Tokenize(p));
+  Check(stream, tokens);
+}
+
+TEST_F(LexerTest, NumLiteralFP_0) {
+  const char *p = "1.;0.;23.f;32.d;.42f;.51d\xFF";
+  std::vector<TokenPtr> tokens = {
+      TokenPtr(kFloatLiteral, "1."),    TokenPtr(kSemicolon),
+      TokenPtr(kFloatLiteral, "0."),    TokenPtr(kSemicolon),
+      TokenPtr(kFloatLiteral, "23.f"),  TokenPtr(kSemicolon),
+      TokenPtr(kDoubleLiteral, "32.d"), TokenPtr(kSemicolon),
+      TokenPtr(kFloatLiteral, ".42f"),  TokenPtr(kSemicolon),
+      TokenPtr(kDoubleLiteral, ".51d"), TokenPtr(kEOF),
+  };
+  auto stream = T_TRY(lexer_.Tokenize(p));
+  Check(stream, tokens);
+}
+
+TEST_F(LexerTest, NumLiteralFP_1) {
+  const char *p = "12.34;56.78d;00.001f\xFF";
+  std::vector<TokenPtr> tokens = {
+      TokenPtr(kFloatLiteral, "12.34"),   TokenPtr(kSemicolon),
+      TokenPtr(kDoubleLiteral, "56.78d"), TokenPtr(kSemicolon),
+      TokenPtr(kFloatLiteral, "00.001f"), TokenPtr(kEOF),
+  };
+  auto stream = T_TRY(lexer_.Tokenize(p));
+  Check(stream, tokens);
+}
+
+TEST_F(LexerTest, NumLiteralFP_2) {
+  const char *p = "1e9;111.e9;.11e8\xFF";
+  std::vector<TokenPtr> tokens = {
+      TokenPtr(kDoubleLiteral, "1e9"),    TokenPtr(kSemicolon),
+      TokenPtr(kDoubleLiteral, "111.e9"), TokenPtr(kSemicolon),
+      TokenPtr(kDoubleLiteral, ".11e8"),  TokenPtr(kEOF),
+  };
+  auto stream = T_TRY(lexer_.Tokenize(p));
+  Check(stream, tokens);
 }
