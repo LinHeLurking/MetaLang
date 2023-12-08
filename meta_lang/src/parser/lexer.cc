@@ -14,7 +14,9 @@ std::expected<Lexer::StreamT, Lexer::Error> meta_lang::parser::Lexer::Tokenize(
     return stream;
   }
   // debug helper
+#ifndef NDEBUG
   auto &_s = reinterpret_cast<State &>(state);
+#endif
   for (; state != int(State::kEOFEnd);) {
     const char *token_begin = p;
     do {

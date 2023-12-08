@@ -49,11 +49,14 @@ inline std::pair<uint32_t, uint8_t> BytesToCodepoint(const char* buf) {
   uint8_t b4 = 0b1111'0000;
   uint8_t b3 = 0b1110'0000;
   uint8_t b2 = 0b1100'0000;
-  uint8_t th = 0b1000'0000;
   uint8_t mask8 = 0b1111'1111;
   uint8_t mask6 = 0b1111'11;
   uint8_t mask4 = 0b1111;
   uint8_t mask3 = 0b111;
+
+#ifndef NDEBUG
+  uint8_t th = 0b1000'0000;
+#endif
 
   if ((buf[0] & b4) == b4) {
     if (buf[1] == mask8) {

@@ -78,15 +78,16 @@ class Lexer {
   }
 
   inline int ChEqPreMul(char ch) const {
-    constexpr int n_state = int(State::STATUS_MAX);
-    assert(ch_eq_[int(uint8_t(ch))] % n_state == 0);
+    // constexpr int n_state = int(State::STATUS_MAX);
+    assert(ch_eq_[int(uint8_t(ch))] % int(State::STATUS_MAX) == 0);
     return ch_eq_[int(uint8_t(ch))];
   }
 
   static inline std::tuple<int, const char*> LookAhead(int state,
                                                        const char* p);
   static inline std::expected<int, Error> AddToken(StreamT& stream, State state,
-                              const char* token_begin,size_t token_len);
+                                                   const char* token_begin,
+                                                   size_t token_len);
 };
 }  // namespace meta_lang::parser
 

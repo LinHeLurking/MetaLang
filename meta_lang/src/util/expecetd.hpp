@@ -4,11 +4,11 @@
 #ifndef E_TRY
 #define E_TRY(expr)                       \
   ({                                      \
-    auto _v = std::move(expr);            \
+    const auto& _v = (expr);              \
     if (!bool(_v)) {                      \
       return std::unexpected(_v.error()); \
     }                                     \
-    std::move(_v.value());                \
+    (_v.value());                         \
   })
 #endif
 
