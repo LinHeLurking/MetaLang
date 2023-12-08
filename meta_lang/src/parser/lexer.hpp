@@ -39,7 +39,6 @@ class Lexer {
   int transition_[TransitionTableSize];
 
   inline void Transition(State from, char ch, State to) {
-    // EOF is (-1), uint8_t(-1) is 127
     auto ch_eq = ChEq(ch);
     // ensure it's a valid char cls
     assert(ch_eq != CharEq::kError);
@@ -73,12 +72,14 @@ class Lexer {
 
   inline CharEq ChEq(char ch) const {
     constexpr int n_state = int(State::STATUS_MAX);
+    // EOF is (-1), uint8_t(-1) is 255
     assert(ch_eq_[int(uint8_t(ch))] % n_state == 0);
     return CharEq(ch_eq_[int(uint8_t(ch))] / n_state);
   }
 
   inline int ChEqPreMul(char ch) const {
     // constexpr int n_state = int(State::STATUS_MAX);
+    // EOF is (-1), uint8_t(-1) is 255
     assert(ch_eq_[int(uint8_t(ch))] % int(State::STATUS_MAX) == 0);
     return ch_eq_[int(uint8_t(ch))];
   }
