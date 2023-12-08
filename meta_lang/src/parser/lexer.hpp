@@ -19,8 +19,8 @@ class Lexer {
     kEOF,
     kNotImplemented,
   };
-  using CharEq = _lexer_detail::CharEq;
-  using State = _lexer_detail::State;
+  using CharEq = CharEq;
+  using State = LexerState;
   using StreamT = std::deque<TokenPtr>;
 
   static constexpr size_t ALPHABET_SIZE = 128;
@@ -85,7 +85,8 @@ class Lexer {
 
   static inline std::tuple<int, const char*> LookAhead(int state,
                                                        const char* p);
-  static inline void AddToken(StreamT& stream, State state);
+  static inline std::expected<int, Error> AddToken(StreamT& stream, State state,
+                              const char* token_begin,size_t token_len);
 };
 }  // namespace meta_lang::parser
 

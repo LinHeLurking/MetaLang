@@ -1,7 +1,7 @@
 #ifndef METALANG_LEXER_STATE_HPP
 #define METALANG_LEXER_STATE_HPP
 
-namespace meta_lang::parser::_lexer_detail {
+namespace meta_lang::parser {
 // Some tokens share the same prefix characters.
 // Therefore, they have common start states.
 //
@@ -24,7 +24,7 @@ namespace meta_lang::parser::_lexer_detail {
 // GreaterMix: >, >=
 // EqMix: =, ==
 // NotMix: !, !=
-enum class State {
+enum class LexerState {
   // Start state
   kStart,
   kError,  // Error state.
@@ -106,10 +106,12 @@ enum class State {
   // char literal
   // ill-formed character literals are checking during syntax analysis.
   kCharLiteralStart,
+  kCharLiteralEscape,
   kCharLiteralSpin,
   // string literal
   // ill-formed string literals are checking during syntax analysis.
   kStrLiteralStart,
+  kStrLiteralEscape,
   kStrLiteralSpin,
   //
   kNumStart,

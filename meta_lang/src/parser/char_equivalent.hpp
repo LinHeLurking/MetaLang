@@ -1,13 +1,15 @@
 #ifndef METALANG_CHAR_EQUIVALENT_HPP
 #define METALANG_CHAR_EQUIVALENT_HPP
 
-namespace meta_lang::parser::_lexer_detail {
+namespace meta_lang::parser {
 enum class CharEq {
   kNum,                // [0-9]
   kCharLow,            // [a-z]
   kCharUp,             // [A-Z]
   kWhitespace,         // ' '
   kNewline,            // '\n'
+  kRewind,             // '\r'
+  kZChar,              // '\0'
   kUnderscore,         // '_'
   kAdd,                // '+'
   kHyphen,             // '-'

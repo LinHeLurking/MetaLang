@@ -2,13 +2,13 @@
 #define METALANG_EXPECETD_HPP
 
 #ifndef E_TRY
-#define E_TRY(expr)            \
-  ({                           \
-    auto _v = std::move(expr); \
-    if (!bool(_v)) {           \
-      return _v;               \
-    }                          \
-    std::move(_v.value());     \
+#define E_TRY(expr)                       \
+  ({                                      \
+    auto _v = std::move(expr);            \
+    if (!bool(_v)) {                      \
+      return std::unexpected(_v.error()); \
+    }                                     \
+    std::move(_v.value());                \
   })
 #endif
 

@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-namespace meta_lang::parser::_lexer_detail {
+namespace meta_lang::parser {
 enum class TokenType {
   // literals
   kStrLiteral,

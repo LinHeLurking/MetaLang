@@ -16,6 +16,7 @@ std::expected<Lexer::StreamT, Lexer::Error> meta_lang::parser::Lexer::Tokenize(
   // debug helper
   auto &_s = reinterpret_cast<State &>(state);
   for (; state != int(State::kEOFEnd);) {
+    const char *token_begin = p;
     do {
       // cls is pre-multiplied
       int cls = ChEqPreMul(*p++);
@@ -23,7 +24,8 @@ std::expected<Lexer::StreamT, Lexer::Error> meta_lang::parser::Lexer::Tokenize(
       if (state > LAST_MIX_STATE) continue;
       std::tie(state, p) = LookAhead(state, p);
     } while (state > LAST_END_STATE);
-    AddToken(stream, State(state));
+    auto token_len = size_t(p - token_begin);
+    E_TRY(AddToken(stream, State(state), token_begin, token_len));
   }
   return stream;
 }
@@ -66,6 +68,8 @@ Lexer::Lexer() {
   ChEq(';', CharEq::kSemicolon);
   ChEq('.', CharEq::kDot);
   ChEq('!', CharEq::kNot);
+  ChEq('\r', CharEq::kRewind);
+  ChEq('\0', CharEq::kZChar);
   // Fill transition table
 
   using enum State;
@@ -76,11 +80,15 @@ Lexer::Lexer() {
     }
     for (int i = 0; i < n_cls; ++i) {
       auto cls = CharEq(i);
-      if (cls == CharEq::kEOF || cls == CharEq::kSingleQuote) continue;
+      if (cls == CharEq::kEOF) continue;
+      Transition(kCharLiteralEscape, cls, kCharLiteralSpin);
+      if (cls == CharEq::kSingleQuote || cls == CharEq::kBackSlash) continue;
       Transition(kCharLiteralStart, cls, kCharLiteralSpin);
       Transition(kCharLiteralSpin, cls, kCharLiteralSpin);
     }
     Transition(kCharLiteralStart, '\'', kCharLiteralEnd);
+    Transition(kCharLiteralStart, '\\', kCharLiteralEscape);
+    Transition(kCharLiteralSpin, '\\', kCharLiteralEscape);
     Transition(kCharLiteralSpin, '\'', kCharLiteralEnd);
   }
   // string literal
@@ -302,13 +310,28 @@ std::tuple<int, const char *> Lexer::LookAhead(int state, const char *p) {
   return {int(s), p};
 }
 
-void Lexer::AddToken(Lexer::StreamT &stream, Lexer::State state) {
+std::expected<int, Lexer::Error> Lexer::AddToken(Lexer::StreamT &stream,
+                                                 Lexer::State state,
+                                                 const char *token_begin,
+                                                 size_t token_len) {
   auto s = State(state);
-  using enum Token::Type;
-#define ADD_TOKEN(t)        \
-  case State::t##End: {     \
-    stream.emplace_back(t); \
-    break;                  \
+  using enum TokenType;
+#define ADD_TOKEN(t)                                            \
+  case State::t##End: {                                         \
+    switch (t) {                                                \
+      default: {                                                \
+        stream.emplace_back(t);                                 \
+        break;                                                  \
+      }                                                         \
+      case TokenType::kCharLiteral: {                           \
+        assert(*token_begin == '\'');                           \
+        assert(token_begin[token_len - 1] == '\'');             \
+        assert(token_len >= 3);                                 \
+        stream.emplace_back(t, token_begin + 1, token_len - 2); \
+        break;                                                  \
+      }                                                         \
+    };                                                          \
+    break;                                                      \
   }
   // ensure that if more states are added, compiler produces error to help you
   // change map counter.
@@ -317,7 +340,8 @@ void Lexer::AddToken(Lexer::StreamT &stream, Lexer::State state) {
   static_assert(LAST_END_STATE - 2 + 1 == 51);  // 51 ending states
   switch (s) {
     default: {
-      assert(false);
+      assert(false && "Error ending state!");
+      E_RET(Error::kErrorChar);
     }
       MACRO_MAP(51, ADD_TOKEN, kStrLiteral, kCharLiteral, kInt32Literal,
                 kInt64Literal, kUint32Literal, kUint64Literal, kFloatLiteral,
@@ -330,5 +354,6 @@ void Lexer::AddToken(Lexer::StreamT &stream, Lexer::State state) {
                 kLeftBracket, kRightBracket, kEOF);
   }
 #undef ADD_TOKEN
+  return 0;
 }
 }  // namespace meta_lang::parser
