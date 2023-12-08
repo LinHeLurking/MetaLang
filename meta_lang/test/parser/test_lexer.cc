@@ -37,6 +37,7 @@ void Check(const Lexer::StreamT &stream, const std::vector<TokenPtr> &tokens) {
       default: {
         break;
       }
+      case kStrLiteral:
       case kCharLiteral: {
         auto a_literal = a->AsStr(), b_literal = b->AsStr();
         EXPECT_TRUE(strcmp(a_literal, b_literal) == 0);
@@ -124,7 +125,8 @@ TEST_F(LexerTest, CharLiteralEscape_1) {
 }
 
 TEST_F(LexerTest, StrLiteral) {
-#define LITERAL "slakdjflkas asl;kjfkl sfkljaslk kslaf' aslkdfj las alskjdf l120-398-012"
+#define LITERAL \
+  "slakdjflkas asl;kjfkl sfkljaslk kslaf' aslkdfj las alskjdf l120-398-012"
   const char *p = "\"" LITERAL "\"\xFF";
   std::vector<TokenPtr> tokens = {
       TokenPtr(kStrLiteral, LITERAL),
@@ -134,7 +136,6 @@ TEST_F(LexerTest, StrLiteral) {
   Check(stream, tokens);
 #undef LITERAL
 }
-
 
 TEST_F(LexerTest, StrLiteralEscape_0) {
 #define LITERAL "slakdjflkas asl;kjf\\\"kl sf\\\nkljas\\\"lk kslaf'''-398-012"

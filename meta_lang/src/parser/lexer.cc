@@ -163,6 +163,13 @@ std::expected<int, Lexer::Error> Lexer::AddToken(Lexer::StreamT &stream,
         stream.emplace_back(t, token_begin + 1, token_len - 2); \
         break;                                                  \
       }                                                         \
+      case TokenType::kStrLiteral: {                            \
+        assert(*token_begin == '"');                            \
+        assert(token_begin[token_len - 1] == '"');              \
+        assert(token_len >= 2);                                 \
+        stream.emplace_back(t, token_begin + 1, token_len - 2); \
+        break;                                                  \
+      }                                                         \
     };                                                          \
     break;                                                      \
   }
