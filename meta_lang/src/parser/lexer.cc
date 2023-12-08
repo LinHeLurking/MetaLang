@@ -239,6 +239,7 @@ std::expected<int, Lexer::Error> Lexer::AddToken(Lexer::StreamT &stream,
         break;                                                  \
       }                                                         \
       case TokenType::kIntLiteral:                              \
+      case TokenType::kInt32Literal:                            \
       case TokenType::kInt64Literal:                            \
       case TokenType::kUint32Literal:                           \
       case TokenType::kUint64Literal:                           \
