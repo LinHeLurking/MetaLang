@@ -23,7 +23,7 @@ class Lexer {
   using State = LexerState;
   using StreamT = std::deque<TokenPtr>;
 
-  static constexpr size_t ALPHABET_SIZE = 128;
+  static constexpr size_t ALPHABET_SIZE = 256;
   static constexpr size_t TransitionTableSize =
       size_t(State::STATUS_MAX) * size_t(CharEq::CHAR_EQ_MAX) + 1;
 
@@ -88,6 +88,9 @@ class Lexer {
   static inline std::expected<int, Error> AddToken(StreamT& stream, State state,
                                                    const char* token_begin,
                                                    size_t token_len);
+
+  void FillChEq() noexcept;
+  void FillTransitionTable() noexcept;
 };
 }  // namespace meta_lang::parser
 

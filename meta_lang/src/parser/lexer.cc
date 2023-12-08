@@ -33,177 +33,8 @@ std::expected<Lexer::StreamT, Lexer::Error> meta_lang::parser::Lexer::Tokenize(
 }
 
 Lexer::Lexer() {
-  constexpr int n_cls = int(CharEq::CHAR_EQ_MAX);
-  // Set default error entries
-  std::fill(ch_eq_, ch_eq_ + ALPHABET_SIZE, int(CharEq::kError));
-  std::fill(transition_, transition_ + TransitionTableSize, int(State::kError));
-
-  // Fill character equivalent table
-  for (int i = 0; i < 26; ++i) {
-    ChEq('a' + i, CharEq::kCharLow);
-    ChEq('A' + i, CharEq::kCharUp);
-  }
-  for (int i = 0; i < 10; ++i) {
-    ChEq('0' + i, CharEq::kNum);
-  }
-  ChEq(' ', CharEq::kWhitespace);
-  ChEq('\n', CharEq::kNewline);
-  ChEq(EOF, CharEq::kEOF);  // pay attention to EOF!
-  ChEq('_', CharEq::kUnderscore);
-  ChEq('+', CharEq::kAdd);
-  ChEq('-', CharEq::kHyphen);
-  ChEq('*', CharEq::kStar);
-  ChEq('/', CharEq::kSlash);
-  ChEq('\\', CharEq::kBackSlash);
-  ChEq('=', CharEq::kEq);
-  ChEq('%', CharEq::kMod);
-  ChEq('\'', CharEq::kSingleQuote);
-  ChEq('"', CharEq::kDoubleQuote);
-  ChEq('(', CharEq::kLeftParen);
-  ChEq(')', CharEq::kRightParen);
-  ChEq('{', CharEq::kLeftCurlyBracket);
-  ChEq('}', CharEq::kRightCurlyBracket);
-  ChEq('[', CharEq::kLeftBracket);
-  ChEq(']', CharEq::kRightBracket);
-  ChEq('<', CharEq::kLess);
-  ChEq('>', CharEq::kGreater);
-  ChEq(';', CharEq::kSemicolon);
-  ChEq('.', CharEq::kDot);
-  ChEq('!', CharEq::kNot);
-  ChEq('\r', CharEq::kRewind);
-  ChEq('\0', CharEq::kZChar);
-  // Fill transition table
-
-  using enum State;
-  // char literal
-  {
-    for (int i = 0; i <= LAST_END_STATE; ++i) {
-      Transition(State(i), '\'', kCharLiteralStart);
-    }
-    for (int i = 0; i < n_cls; ++i) {
-      auto cls = CharEq(i);
-      if (cls == CharEq::kEOF) continue;
-      Transition(kCharLiteralEscape, cls, kCharLiteralSpin);
-      if (cls == CharEq::kSingleQuote || cls == CharEq::kBackSlash) continue;
-      Transition(kCharLiteralStart, cls, kCharLiteralSpin);
-      Transition(kCharLiteralSpin, cls, kCharLiteralSpin);
-    }
-    Transition(kCharLiteralStart, '\'', kCharLiteralEnd);
-    Transition(kCharLiteralStart, '\\', kCharLiteralEscape);
-    Transition(kCharLiteralSpin, '\\', kCharLiteralEscape);
-    Transition(kCharLiteralSpin, '\'', kCharLiteralEnd);
-  }
-  // string literal
-  {
-    for (int i = 0; i <= LAST_END_STATE; ++i) {
-      Transition(State(i), '"', kStrLiteralStart);
-    }
-    for (int i = 0; i < n_cls; ++i) {
-      auto cls = CharEq(i);
-      if (cls == CharEq::kEOF || cls == CharEq::kDoubleQuote) continue;
-      Transition(kStrLiteralStart, cls, kStrLiteralSpin);
-      Transition(kStrLiteralSpin, cls, kStrLiteralSpin);
-    }
-    Transition(kStrLiteralStart, '"', kStrLiteralEnd);
-    Transition(kStrLiteralSpin, '"', kStrLiteralEnd);
-  }
-  // AddMix
-  {
-    for (int i = 0; i < LAST_END_STATE; ++i) {
-      Transition(State(i), '+', kAddMixStart);
-    }
-    Transition(kAddMixStart, '+', kIncEnd);
-    Transition(kAddMixStart, '=', kAddEqEnd);
-  }
-  // SubMix
-  {
-    for (int i = 0; i < LAST_END_STATE; ++i) {
-      Transition(State(i), '-', kSubMixStart);
-    }
-    Transition(kSubMixStart, '-', kDecEnd);
-    Transition(kSubMixStart, '=', kSubEqEnd);
-  }
-  // MulMix
-  {
-    for (int i = 0; i < LAST_END_STATE; ++i) {
-      Transition(State(i), '*', kMulMixStart);
-    }
-    Transition(kMulMixStart, '=', kMulEqEnd);
-  }
-  // SlashMix
-  {
-    for (int i = 0; i < LAST_END_STATE; ++i) {
-      auto state = State(i);
-      Transition(state, '/', kSlashMixStart);
-    }
-    Transition(kSlashMixStart, '/', kCommentSpin);
-    Transition(kSlashMixStart, '=', kDivEqEnd);
-    for (int i = 0; i < n_cls; ++i) {
-      auto cls = CharEq(i);
-      if (cls == CharEq::kNewline) continue;
-      Transition(kCommentSpin, cls, kCommentSpin);
-    }
-    Transition(kCommentSpin, '\n', kCommentEnd);
-  }
-  // ModMix
-  {
-    for (int i = 0; i < LAST_END_STATE; ++i) {
-      Transition(State(i), '%', kModMixStart);
-    }
-    Transition(kModMixStart, '=', kModEqEnd);
-  }
-  // LessMix
-  {
-    for (int i = 0; i < LAST_END_STATE; ++i) {
-      Transition(State(i), '<', kLessMixStart);
-    }
-    Transition(kLessMixStart, '=', kLessEqEnd);
-  }
-  // GreaterMix
-  {
-    for (int i = 0; i < LAST_END_STATE; ++i) {
-      Transition(State(i), '>', kGreaterMixStart);
-    }
-    Transition(kGreaterMixStart, '=', kGreaterEqEnd);
-  }
-  // EqMix
-  {
-    for (int i = 0; i < LAST_END_STATE; ++i) {
-      Transition(State(i), '=', kEqMixStart);
-    }
-    Transition(kEqMixStart, '=', kEqEnd);
-  }
-  // NotMix
-  {
-    for (int i = 0; i < LAST_END_STATE; ++i) {
-      Transition(State(i), '!', kNotMixStart);
-    }
-    Transition(kNotMixStart, '=', kNotEqEnd);
-  }
-  // single char token
-  {
-    std::unordered_map<char, State> m = {
-        {';', kSemicolonEnd},        {'.', kDotEnd},
-        {'(', kLeftParenEnd},        {')', kRightParenEnd},
-        {'[', kLeftBracketEnd},      {']', kRightBracketEnd},
-        {'{', kLeftCurlyBracketEnd}, {'}', kRightCurlyBracketEnd},
-    };
-    for (int i = 0; i <= LAST_END_STATE; ++i) {
-      auto state = State(i);
-      for (const auto [ch, target_state] : m) {
-        // skip already set entries
-        if (Transition(state, ch) != kError) continue;
-        Transition(state, ch, target_state);
-      }
-    }
-    // EOF
-    {
-      for (int i = 0; i <= LAST_END_STATE; ++i) {
-        auto state = State(i);
-        Transition(state, ChEq(EOF), kEOFEnd);
-      }
-    }
-  }
+  FillChEq();
+  FillTransitionTable();
 }
 
 std::tuple<int, const char *> Lexer::LookAhead(int state, const char *p) {
@@ -357,5 +188,180 @@ std::expected<int, Lexer::Error> Lexer::AddToken(Lexer::StreamT &stream,
   }
 #undef ADD_TOKEN
   return 0;
+}
+
+void Lexer::FillChEq() noexcept {
+  // Fill character equivalent table
+  std::fill(ch_eq_, ch_eq_ + ALPHABET_SIZE, int(CharEq::kError));
+  for (int i = 0; i < 26; ++i) {
+    ChEq('a' + i, CharEq::kCharLow);
+    ChEq('A' + i, CharEq::kCharUp);
+  }
+  for (int i = 0; i < 10; ++i) {
+    ChEq('0' + i, CharEq::kNum);
+  }
+  ChEq(' ', CharEq::kWhitespace);
+  ChEq('\n', CharEq::kNewline);
+  ChEq(EOF, CharEq::kEOF);  // pay attention to EOF!
+  ChEq('_', CharEq::kUnderscore);
+  ChEq('+', CharEq::kAdd);
+  ChEq('-', CharEq::kHyphen);
+  ChEq('*', CharEq::kStar);
+  ChEq('/', CharEq::kSlash);
+  ChEq('\\', CharEq::kBackSlash);
+  ChEq('=', CharEq::kEq);
+  ChEq('%', CharEq::kMod);
+  ChEq('\'', CharEq::kSingleQuote);
+  ChEq('"', CharEq::kDoubleQuote);
+  ChEq('(', CharEq::kLeftParen);
+  ChEq(')', CharEq::kRightParen);
+  ChEq('{', CharEq::kLeftCurlyBracket);
+  ChEq('}', CharEq::kRightCurlyBracket);
+  ChEq('[', CharEq::kLeftBracket);
+  ChEq(']', CharEq::kRightBracket);
+  ChEq('<', CharEq::kLess);
+  ChEq('>', CharEq::kGreater);
+  ChEq(';', CharEq::kSemicolon);
+  ChEq('.', CharEq::kDot);
+  ChEq('!', CharEq::kNot);
+  ChEq('\r', CharEq::kRewind);
+  ChEq('\0', CharEq::kZChar);
+}
+
+void Lexer::FillTransitionTable() noexcept {
+  constexpr int n_cls = int(CharEq::CHAR_EQ_MAX);
+
+  // Fill transition table
+  std::fill(transition_, transition_ + TransitionTableSize, int(State::kError));
+  using enum State;
+  // char literal
+  {
+    for (int i = 0; i <= LAST_END_STATE; ++i) {
+      Transition(State(i), '\'', kCharLiteralStart);
+    }
+    for (int i = 0; i < n_cls; ++i) {
+      auto cls = CharEq(i);
+      if (cls == CharEq::kEOF) continue;
+      Transition(kCharLiteralEscape, cls, kCharLiteralSpin);
+      if (cls == CharEq::kSingleQuote || cls == CharEq::kBackSlash) continue;
+      Transition(kCharLiteralStart, cls, kCharLiteralSpin);
+      Transition(kCharLiteralSpin, cls, kCharLiteralSpin);
+    }
+    Transition(kCharLiteralStart, '\'', kCharLiteralEnd);
+    Transition(kCharLiteralStart, '\\', kCharLiteralEscape);
+    Transition(kCharLiteralSpin, '\\', kCharLiteralEscape);
+    Transition(kCharLiteralSpin, '\'', kCharLiteralEnd);
+  }
+  // string literal
+  {
+    for (int i = 0; i <= LAST_END_STATE; ++i) {
+      Transition(State(i), '"', kStrLiteralStart);
+    }
+    for (int i = 0; i < n_cls; ++i) {
+      auto cls = CharEq(i);
+      if (cls == CharEq::kEOF || cls == CharEq::kDoubleQuote) continue;
+      Transition(kStrLiteralStart, cls, kStrLiteralSpin);
+      Transition(kStrLiteralSpin, cls, kStrLiteralSpin);
+    }
+    Transition(kStrLiteralStart, '"', kStrLiteralEnd);
+    Transition(kStrLiteralSpin, '"', kStrLiteralEnd);
+  }
+  // AddMix
+  {
+    for (int i = 0; i < LAST_END_STATE; ++i) {
+      Transition(State(i), '+', kAddMixStart);
+    }
+    Transition(kAddMixStart, '+', kIncEnd);
+    Transition(kAddMixStart, '=', kAddEqEnd);
+  }
+  // SubMix
+  {
+    for (int i = 0; i < LAST_END_STATE; ++i) {
+      Transition(State(i), '-', kSubMixStart);
+    }
+    Transition(kSubMixStart, '-', kDecEnd);
+    Transition(kSubMixStart, '=', kSubEqEnd);
+  }
+  // MulMix
+  {
+    for (int i = 0; i < LAST_END_STATE; ++i) {
+      Transition(State(i), '*', kMulMixStart);
+    }
+    Transition(kMulMixStart, '=', kMulEqEnd);
+  }
+  // SlashMix
+  {
+    for (int i = 0; i < LAST_END_STATE; ++i) {
+      auto state = State(i);
+      Transition(state, '/', kSlashMixStart);
+    }
+    Transition(kSlashMixStart, '/', kCommentSpin);
+    Transition(kSlashMixStart, '=', kDivEqEnd);
+    for (int i = 0; i < n_cls; ++i) {
+      auto cls = CharEq(i);
+      if (cls == CharEq::kNewline) continue;
+      Transition(kCommentSpin, cls, kCommentSpin);
+    }
+    Transition(kCommentSpin, '\n', kCommentEnd);
+  }
+  // ModMix
+  {
+    for (int i = 0; i < LAST_END_STATE; ++i) {
+      Transition(State(i), '%', kModMixStart);
+    }
+    Transition(kModMixStart, '=', kModEqEnd);
+  }
+  // LessMix
+  {
+    for (int i = 0; i < LAST_END_STATE; ++i) {
+      Transition(State(i), '<', kLessMixStart);
+    }
+    Transition(kLessMixStart, '=', kLessEqEnd);
+  }
+  // GreaterMix
+  {
+    for (int i = 0; i < LAST_END_STATE; ++i) {
+      Transition(State(i), '>', kGreaterMixStart);
+    }
+    Transition(kGreaterMixStart, '=', kGreaterEqEnd);
+  }
+  // EqMix
+  {
+    for (int i = 0; i < LAST_END_STATE; ++i) {
+      Transition(State(i), '=', kEqMixStart);
+    }
+    Transition(kEqMixStart, '=', kEqEnd);
+  }
+  // NotMix
+  {
+    for (int i = 0; i < LAST_END_STATE; ++i) {
+      Transition(State(i), '!', kNotMixStart);
+    }
+    Transition(kNotMixStart, '=', kNotEqEnd);
+  }
+  // single char token
+  {
+    std::unordered_map<char, State> m = {
+        {';', kSemicolonEnd},        {'.', kDotEnd},
+        {'(', kLeftParenEnd},        {')', kRightParenEnd},
+        {'[', kLeftBracketEnd},      {']', kRightBracketEnd},
+        {'{', kLeftCurlyBracketEnd}, {'}', kRightCurlyBracketEnd},
+    };
+    for (int i = 0; i <= LAST_END_STATE; ++i) {
+      auto state = State(i);
+      for (const auto [ch, target_state] : m) {
+        // skip already set entries
+        if (Transition(state, ch) != kError) continue;
+        Transition(state, ch, target_state);
+      }
+    }
+    // EOF
+    {
+      for (int i = 0; i <= LAST_END_STATE; ++i) {
+        auto state = State(i);
+        Transition(state, ChEq(EOF), kEOFEnd);
+      }
+    }
+  }
 }
 }  // namespace meta_lang::parser
