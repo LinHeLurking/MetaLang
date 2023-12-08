@@ -200,6 +200,12 @@ std::tuple<int, const char *> Lexer::LookAhead(int state,
       }
       break;
     }
+    case kIdentifierMixStart: {
+      for (; isalnum(*p) || *p == '_'; ++p) {
+      }
+      s = kIdentifierEnd;
+      break;
+    }
   }
   return {int(s), p};
 }
@@ -237,7 +243,8 @@ std::expected<int, Lexer::Error> Lexer::AddToken(Lexer::StreamT &stream,
       case TokenType::kUint32Literal:                           \
       case TokenType::kUint64Literal:                           \
       case TokenType::kFloatLiteral:                            \
-      case TokenType::kDoubleLiteral: {                         \
+      case TokenType::kDoubleLiteral:                           \
+      case TokenType::kIdentifier: {                            \
         stream.emplace_back(t, token_begin, token_len);         \
         break;                                                  \
       }                                                         \
@@ -248,21 +255,20 @@ std::expected<int, Lexer::Error> Lexer::AddToken(Lexer::StreamT &stream,
   // change map counter.
 
   // 1st state is kStart, 2nd is kError, LAST_END_STATE is kEOFEnd
-  static_assert(LAST_END_STATE - 2 + 1 == 52);  // 52 ending states
+  static_assert(LAST_END_STATE - 2 + 1 == 40);  // 40 ending states
   switch (s) {
     default: {
       assert(false && "Error ending state!");
       E_RET(Error::kErrorChar);
     }
-      MACRO_MAP(52, ADD_TOKEN, kStrLiteral, kCharLiteral, kIntLiteral,
+      MACRO_MAP(40, ADD_TOKEN, kStrLiteral, kCharLiteral, kIntLiteral,
                 kInt32Literal, kInt64Literal, kUint32Literal, kUint64Literal,
-                kFloatLiteral, kDoubleLiteral, kVal, kFunc, kReturn, kIf, kFor,
-                kBreak, kTrue, kFalse, kStringType, kInt32Type, kInt64Type,
-                kUInt32Type, kUint64Type, kAdd, kAddEq, kSub, kSubEq, kMul,
-                kMulEq, kDiv, kDivEq, kMod, kModEq, kInc, kDec, kAssign, kEq,
-                kNotEq, kLess, kGreater, kLessEq, kGreaterEq, kNot, kComment,
-                kDot, kSemicolon, kLeftParen, kRightParen, kLeftCurlyBracket,
-                kRightCurlyBracket, kLeftBracket, kRightBracket, kEOF);
+                kFloatLiteral, kDoubleLiteral, kIdentifier, kAdd, kAddEq, kSub,
+                kSubEq, kMul, kMulEq, kDiv, kDivEq, kMod, kModEq, kInc, kDec,
+                kAssign, kEq, kNotEq, kLess, kGreater, kLessEq, kGreaterEq,
+                kNot, kComment, kDot, kSemicolon, kLeftParen, kRightParen,
+                kLeftCurlyBracket, kRightCurlyBracket, kLeftBracket,
+                kRightBracket, kEOF);
   }
 #undef ADD_TOKEN
   return 0;
@@ -447,6 +453,15 @@ void Lexer::FillTransitionTable() noexcept {
         // skip already set entries
         if (Transition(state, ch) != kError) continue;
         Transition(state, ch, target_state);
+      }
+    }
+    // identifiers
+    {
+      for (int i = 0; i <= LAST_END_STATE; ++i) {
+        auto s = State(i);
+        Transition(s, CharEq::kCharLow, kIdentifierMixStart);
+        Transition(s, CharEq::kCharUp, kIdentifierMixStart);
+        Transition(s, CharEq::kUnderscore, kIdentifierMixStart);
       }
     }
     // EOF

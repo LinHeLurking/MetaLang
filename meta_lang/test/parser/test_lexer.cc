@@ -37,8 +37,15 @@ void Check(const Lexer::StreamT &stream, const std::vector<TokenPtr> &tokens) {
       default: {
         break;
       }
+      case kInt32Literal:
+      case kUint32Literal:
+      case kInt64Literal:
+      case kUint64Literal:
+      case kFloatLiteral:
+      case kDoubleLiteral:
       case kStrLiteral:
-      case kCharLiteral: {
+      case kCharLiteral:
+      case kIdentifier: {
         auto a_literal = a->AsStr(), b_literal = b->AsStr();
         EXPECT_TRUE(strcmp(a_literal, b_literal) == 0);
         break;
@@ -205,6 +212,20 @@ TEST_F(LexerTest, NumLiteralFP_2) {
       TokenPtr(kDoubleLiteral, "1e9"),    TokenPtr(kSemicolon),
       TokenPtr(kDoubleLiteral, "111.e9"), TokenPtr(kSemicolon),
       TokenPtr(kDoubleLiteral, ".11e8"),  TokenPtr(kEOF),
+  };
+  auto stream = T_TRY(lexer_.Tokenize(p));
+  Check(stream, tokens);
+}
+
+TEST_F(LexerTest, Identifier_0) {
+  const char *p = "aa=_bb;x==yyy;a++;\xFF";
+  std::vector<TokenPtr> tokens = {
+      TokenPtr(kIdentifier, "aa"),  TokenPtr(kAssign),
+      TokenPtr(kIdentifier, "_bb"), TokenPtr(kSemicolon),
+      TokenPtr(kIdentifier, "x"),   TokenPtr(kEq),
+      TokenPtr(kIdentifier, "yyy"), TokenPtr(kSemicolon),
+      TokenPtr(kIdentifier, "a"),   TokenPtr(kInc),
+      TokenPtr(kSemicolon),         TokenPtr(kEOF),
   };
   auto stream = T_TRY(lexer_.Tokenize(p));
   Check(stream, tokens);

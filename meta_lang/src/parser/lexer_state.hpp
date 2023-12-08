@@ -37,21 +37,8 @@ enum class LexerState {
   kUint64LiteralEnd,
   kFloatLiteralEnd,
   kDoubleLiteralEnd,
-  // keywords
-  kValEnd,
-  kFuncEnd,
-  kReturnEnd,
-  kIfEnd,
-  kForEnd,
-  kBreakEnd,
-  kTrueEnd,
-  kFalseEnd,
-  // type names
-  kStringTypeEnd,
-  kInt32TypeEnd,
-  kInt64TypeEnd,
-  kUInt32TypeEnd,
-  kUint64TypeEnd,
+  // identifiers
+  kIdentifierEnd,
   // operators
   kAddEnd,
   kAddEqEnd,
@@ -99,6 +86,7 @@ enum class LexerState {
   kEqMixStart,
   kNumMixStart,
   kDotMixStart,
+  kIdentifierMixStart,
   kNotMixStart,
   //
   // All mix start states are above. You can easily check if current token is
@@ -116,7 +104,6 @@ enum class LexerState {
   kStrLiteralStart,
   kStrLiteralEscape,
   kStrLiteralSpin,
-  //
   kNumSpin,
   // counter
   STATUS_MAX,

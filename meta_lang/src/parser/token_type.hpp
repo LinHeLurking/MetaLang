@@ -15,21 +15,8 @@ enum class TokenType {
   kUint64Literal,
   kFloatLiteral,
   kDoubleLiteral,
-  // keywords
-  kVal,
-  kFunc,
-  kReturn,
-  kIf,
-  kFor,
-  kBreak,
-  kTrue,
-  kFalse,
-  // type names
-  kStringType,
-  kInt32Type,
-  kInt64Type,
-  kUInt32Type,
-  kUint64Type,
+  // identifier
+  kIdentifier,
   // operators
   kAdd,        // +
   kAddEq,      // +=
