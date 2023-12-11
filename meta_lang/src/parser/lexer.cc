@@ -2,7 +2,7 @@
 
 #include <unordered_map>
 
-#include "src/util/macro_map.hpp"
+#include "src/util/macro_util.hpp"
 
 namespace meta_lang::parser {
 
@@ -262,7 +262,7 @@ std::expected<int, Lexer::Error> Lexer::AddToken(Lexer::StreamT &stream,
       assert(false && "Error ending state!");
       E_RET(Error::kErrorChar);
     }
-      MACRO_MAP(40, ADD_TOKEN, kStrLiteral, kCharLiteral, kIntLiteral,
+      MACRO_FOREACH(ADD_TOKEN, kStrLiteral, kCharLiteral, kIntLiteral,
                 kInt32Literal, kInt64Literal, kUint32Literal, kUint64Literal,
                 kFloatLiteral, kDoubleLiteral, kIdentifier, kAdd, kAddEq, kSub,
                 kSubEq, kMul, kMulEq, kDiv, kDivEq, kMod, kModEq, kInc, kDec,

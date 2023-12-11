@@ -7,7 +7,7 @@
 #include "./char_equivalent.hpp"
 #include "./lexer_state.hpp"
 #include "./token.hpp"
-#include "src/util/arithmetic.hpp"
+#include "./keyword_type.hpp"
 #include "src/util/file_reader.hpp"
 
 namespace meta_lang::parser {

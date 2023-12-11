@@ -17,6 +17,7 @@ enum class TokenType {
   kDoubleLiteral,
   // identifier
   kIdentifier,
+  kKeyword,
   // operators
   kAdd,        // +
   kAddEq,      // +=
