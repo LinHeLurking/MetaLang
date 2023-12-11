@@ -31,9 +31,8 @@ void Check(const Lexer::StreamT &stream, const std::vector<TokenPtr> &tokens) {
   auto i = stream.begin();
   auto j = tokens.begin();
   for (; i != stream.end(); ++i, ++j) {
-    const auto &a = *i, &b = *j;
-    EXPECT_EQ(a->Type(), b->Type());
-    switch (a->Type()) {
+    EXPECT_EQ(i->Type(), j->Type());
+    switch (i->Type()) {
       default: {
         break;
       }
@@ -46,7 +45,7 @@ void Check(const Lexer::StreamT &stream, const std::vector<TokenPtr> &tokens) {
       case kStrLiteral:
       case kCharLiteral:
       case kIdentifier: {
-        auto a_literal = a->AsStr(), b_literal = b->AsStr();
+        auto a_literal = i->AsStr(), b_literal = j->AsStr();
         EXPECT_TRUE(strcmp(a_literal, b_literal) == 0);
         break;
       }

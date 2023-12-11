@@ -2,7 +2,6 @@
 #define METALANG_TOKEN_HPP
 
 #include <concepts>
-#include <type_traits>
 
 #include "./token_type.hpp"
 
@@ -11,24 +10,6 @@ namespace meta_lang::parser {
 class TokenPtr;
 
 class Token {
- public:
-  [[nodiscard]] TokenType Type() const noexcept { return t_; }
-
-  template <class T>
-    requires std::integral<T> || std::floating_point<T>
-  [[nodiscard]] std::remove_const_t<T> As() const noexcept {
-    return *reinterpret_cast<T*>(const_cast<char*>(body_));
-  }
-
-  template <class T>
-    requires std::is_same_v<T, const char*>
-  [[nodiscard]] auto As() const noexcept {
-    return reinterpret_cast<const char*>(body_);
-  }
-
-  [[nodiscard]] auto AsStr() const noexcept { return As<const char*>(); }
-
- private:
   friend class TokenPtr;
   TokenType t_;
   char body_[0];  // placeholder
@@ -36,54 +17,82 @@ class Token {
 static_assert(sizeof(Token) <= 4);  // Bodies are hidden :P
 
 class TokenPtr {
+#define MY_TOKEN reinterpret_cast<Token*>(p_)
  public:
   TokenPtr() = delete;
-  TokenPtr(const TokenPtr&) = default;
-  TokenPtr(TokenPtr&& rhs) = default;
-
-  explicit TokenPtr(TokenType t) {
-    p_.reset(new char[sizeof(Token)]);
-    reinterpret_cast<Token*>(p_.get())->t_ = t;
+  TokenPtr(const TokenPtr& rhs) {
+    size_t len = sizeof(Token) + strlen(rhs.p_ + sizeof(Token)) + 1;
+    p_ = new char[len];
+    memcpy(p_, rhs.p_, len);
 #ifndef NDEBUG
-    _token_ = reinterpret_cast<Token*>(p_.get());
+    tk_ = reinterpret_cast<Token*>(p_);
+#endif
+  }
+  TokenPtr(TokenPtr&& rhs) noexcept {
+    p_ = rhs.p_;
+    rhs.p_ = nullptr;
+#ifndef NDEBUG
+    tk_ = reinterpret_cast<Token*>(p_);
 #endif
   }
 
-  TokenPtr(TokenType t, const char* name, size_t len) {
-    p_.reset(new char[sizeof(Token) + len + 1]);
-    reinterpret_cast<Token*>(p_.get())->t_ = t;
-    auto p = p_.get() + sizeof(Token);
-    memcpy(p, name, len);
-    p[len] = '\0';
+  ~TokenPtr() { delete[] p_; }
+
+  explicit TokenPtr(TokenType t) {
+    size_t len = sizeof(Token) + 1;
+    p_ = static_cast<char*>(malloc(len));
+    MY_TOKEN->t_ = t;
+    p_[len - 1] = '\0';
 #ifndef NDEBUG
-    _token_ = reinterpret_cast<Token*>(p_.get());
+    tk_ = reinterpret_cast<Token*>(p_);
+#endif
+  }
+
+  TokenPtr(TokenType t, const char* name, size_t name_len) {
+    size_t len = sizeof(Token) + name_len + 1;
+    p_ = static_cast<char*>(malloc(len));
+    MY_TOKEN->t_ = t;
+    memcpy(MY_TOKEN->body_, name, name_len);
+    p_[len - 1] = '\0';
+#ifndef NDEBUG
+    tk_ = reinterpret_cast<Token*>(p_);
 #endif
   }
 
   TokenPtr(TokenType t, const char* name) {
-    size_t len = strlen(name);
-    p_.reset(new char[sizeof(Token) + len + 1]);
-    reinterpret_cast<Token*>(p_.get())->t_ = t;
-    auto p = p_.get() + sizeof(Token);
-    memcpy(p, name, len);
-    p[len] = '\0';
+    size_t name_len = strlen(name);
+    size_t len = sizeof(Token) + name_len + 1;
+    p_ = static_cast<char*>(malloc(len));
+    MY_TOKEN->t_ = t;
+    memcpy(MY_TOKEN->body_, name, name_len);
+    p_[len - 1] = '\0';
 #ifndef NDEBUG
-    _token_ = reinterpret_cast<Token*>(p_.get());
+    tk_ = reinterpret_cast<Token*>(p_);
 #endif
   }
 
-  Token* operator->() const noexcept {
-    return reinterpret_cast<Token*>(p_.get());
+  template <class T>
+    requires std::integral<T> || std::floating_point<T>
+  [[nodiscard]] std::remove_const_t<T> As() const noexcept {
+    return *reinterpret_cast<T*>(MY_TOKEN->body_);
   }
-  Token& operator*() const noexcept {
-    return *reinterpret_cast<Token*>(p_.get());
+
+  template <class T>
+    requires std::is_same_v<T, const char*>
+  [[nodiscard]] const char* As() const noexcept {
+    return reinterpret_cast<T>(MY_TOKEN->body_);
   }
+
+  [[nodiscard]] auto AsStr() const noexcept { return As<const char*>(); }
+
+  [[nodiscard]] auto Type() const noexcept { return MY_TOKEN->t_; }
 
  private:
-  std::shared_ptr<char[]> p_;
+  char* p_ = nullptr;
+#undef MY_TOKEN
 
 #ifndef NDEBUG
-  const Token* _token_ = nullptr;
+  Token* tk_ = reinterpret_cast<Token*>(p_);
 #endif
 };
 
