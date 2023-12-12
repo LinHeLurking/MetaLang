@@ -2,6 +2,7 @@
 
 #include <unordered_map>
 
+#include "./keyword_type.hpp"
 #include "src/util/macro_util.hpp"
 
 namespace meta_lang::parser {
@@ -210,6 +211,58 @@ std::tuple<int, const char *> Lexer::LookAhead(int state,
   return {int(s), p};
 }
 
+namespace {
+std::expected<int, Lexer::Error> StreamAddToken(Lexer::StreamT &stream,
+                                                TokenType t,
+                                                const char *token_begin,
+                                                size_t token_len) noexcept {
+  switch (t) {
+    default: {
+      stream.emplace_back(t);
+      break;
+    }
+    case TokenType::kCharLiteral: {
+      assert(*token_begin == '\'');
+      assert(token_begin[token_len - 1] == '\'');
+      assert(token_len >= 3);
+      stream.emplace_back(t, token_begin + 1, token_len - 2);
+      break;
+    }
+    case TokenType::kStrLiteral: {
+      assert(*token_begin == '"');
+      assert(token_begin[token_len - 1] == '"');
+      assert(token_len >= 2);
+      stream.emplace_back(t, token_begin + 1, token_len - 2);
+      break;
+    }
+    case TokenType::kIntLiteral:
+    case TokenType::kInt32Literal:
+    case TokenType::kInt64Literal:
+    case TokenType::kUint32Literal:
+    case TokenType::kUint64Literal:
+    case TokenType::kFloatLiteral:
+    case TokenType::kDoubleLiteral: {
+      stream.emplace_back(t, token_begin, token_len);
+      break;
+    }
+    case TokenType::kIdentifier: {
+      char tmp[32];
+      memcpy(tmp, token_begin, token_len);
+      tmp[token_len] = '\0';
+      // null terminator is important!!!
+      auto keyword = KeywordTypeFromStr(tmp);
+      if (!keyword) {
+        stream.emplace_back(t, token_begin, token_len);
+      } else {
+        stream.emplace_back(TokenType::kKeyword, keyword.value());
+      }
+      break;
+    }
+  }
+  return 0;
+}
+}  // namespace
+
 std::expected<int, Lexer::Error> Lexer::AddToken(Lexer::StreamT &stream,
                                                  Lexer::State state,
                                                  const char *token_begin,
@@ -217,59 +270,31 @@ std::expected<int, Lexer::Error> Lexer::AddToken(Lexer::StreamT &stream,
   auto s = State(state);
   using enum TokenType;
 
-#define ADD_TOKEN(t)                                            \
-  case State::t##End: {                                         \
-    switch (t) {                                                \
-      default: {                                                \
-        stream.emplace_back(t);                                 \
-        break;                                                  \
-      }                                                         \
-      case TokenType::kCharLiteral: {                           \
-        assert(*token_begin == '\'');                           \
-        assert(token_begin[token_len - 1] == '\'');             \
-        assert(token_len >= 3);                                 \
-        stream.emplace_back(t, token_begin + 1, token_len - 2); \
-        break;                                                  \
-      }                                                         \
-      case TokenType::kStrLiteral: {                            \
-        assert(*token_begin == '"');                            \
-        assert(token_begin[token_len - 1] == '"');              \
-        assert(token_len >= 2);                                 \
-        stream.emplace_back(t, token_begin + 1, token_len - 2); \
-        break;                                                  \
-      }                                                         \
-      case TokenType::kIntLiteral:                              \
-      case TokenType::kInt32Literal:                            \
-      case TokenType::kInt64Literal:                            \
-      case TokenType::kUint32Literal:                           \
-      case TokenType::kUint64Literal:                           \
-      case TokenType::kFloatLiteral:                            \
-      case TokenType::kDoubleLiteral:                           \
-      case TokenType::kIdentifier: {                            \
-        stream.emplace_back(t, token_begin, token_len);         \
-        break;                                                  \
-      }                                                         \
-    };                                                          \
-    break;                                                      \
+#define ADD_TOKEN(t)                                          \
+  case State::t##End: {                                       \
+    E_TRY(StreamAddToken(stream, t, token_begin, token_len)); \
+    break;                                                    \
   }
   // ensure that if more states are added, compiler produces error to help you
   // change map counter.
 
-  // 1st state is kStart, 2nd is kError, LAST_END_STATE is kEOFEnd
-  static_assert(LAST_END_STATE - 2 + 1 == 40);  // 40 ending states
   switch (s) {
     default: {
       assert(false && "Error ending state!");
       E_RET(Error::kErrorChar);
     }
+    case LexerState::kStart: {
+      // meet start state again means it's white space spin!
+      break;
+    }
       MACRO_FOREACH(ADD_TOKEN, kStrLiteral, kCharLiteral, kIntLiteral,
-                kInt32Literal, kInt64Literal, kUint32Literal, kUint64Literal,
-                kFloatLiteral, kDoubleLiteral, kIdentifier, kAdd, kAddEq, kSub,
-                kSubEq, kMul, kMulEq, kDiv, kDivEq, kMod, kModEq, kInc, kDec,
-                kAssign, kEq, kNotEq, kLess, kGreater, kLessEq, kGreaterEq,
-                kNot, kComment, kDot, kSemicolon, kLeftParen, kRightParen,
-                kLeftCurlyBracket, kRightCurlyBracket, kLeftBracket,
-                kRightBracket, kEOF);
+                    kInt32Literal, kInt64Literal, kUint32Literal,
+                    kUint64Literal, kFloatLiteral, kDoubleLiteral, kIdentifier,
+                    kAdd, kAddEq, kSub, kSubEq, kMul, kMulEq, kDiv, kDivEq,
+                    kMod, kModEq, kInc, kDec, kAssign, kEq, kNotEq, kLess,
+                    kGreater, kLessEq, kGreaterEq, kNot, kComment, kDot,
+                    kSemicolon, kLeftParen, kRightParen, kLeftCurlyBracket,
+                    kRightCurlyBracket, kLeftBracket, kRightBracket, kEOF);
   }
 #undef ADD_TOKEN
   return 0;
@@ -463,6 +488,15 @@ void Lexer::FillTransitionTable() noexcept {
         Transition(s, CharEq::kCharLow, kIdentifierMixStart);
         Transition(s, CharEq::kCharUp, kIdentifierMixStart);
         Transition(s, CharEq::kUnderscore, kIdentifierMixStart);
+      }
+    }
+    // white spaces
+    {
+      for (int i = 0; i <= LAST_END_STATE; ++i) {
+        auto s = State(i);
+        Transition(s, ' ', kStart);
+        Transition(s, '\n', kStart);
+        Transition(s, '\r', kStart);
       }
     }
     // EOF

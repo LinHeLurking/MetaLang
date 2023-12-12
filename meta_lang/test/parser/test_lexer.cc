@@ -3,6 +3,7 @@
 #include <ranges>
 
 #include "../util/try_expected.hpp"
+#include "src/parser/keyword_type.hpp"
 #include "src/parser/lexer.hpp"
 
 using namespace meta_lang::parser;
@@ -47,6 +48,11 @@ void Check(const Lexer::StreamT &stream, const std::vector<TokenPtr> &tokens) {
       case kIdentifier: {
         auto a_literal = i->AsStr(), b_literal = j->AsStr();
         EXPECT_TRUE(strcmp(a_literal, b_literal) == 0);
+        break;
+      }
+      case kKeyword: {
+        auto a_keyword = i->As<KeywordType>(), b_keyword = j->As<KeywordType>();
+        EXPECT_EQ(a_keyword, b_keyword);
         break;
       }
     }
@@ -228,4 +234,23 @@ TEST_F(LexerTest, Identifier_0) {
   };
   auto stream = T_TRY(lexer_.Tokenize(p));
   Check(stream, tokens);
+}
+
+TEST_F(LexerTest, Keyword_0) {
+  const char *p = "Int32 a = b;String x = y;\xFF";
+  std::vector<TokenPtr> toknes = {
+      TokenPtr(kKeyword, KeywordType::kInt32),
+      TokenPtr(kIdentifier, "a"),
+      TokenPtr(kAssign),
+      TokenPtr(kIdentifier, "b"),
+      TokenPtr(kSemicolon),
+      TokenPtr(kKeyword, KeywordType::kString),
+      TokenPtr(kIdentifier, "x"),
+      TokenPtr(kAssign),
+      TokenPtr(kIdentifier, "y"),
+      TokenPtr(kSemicolon),
+      TokenPtr(kEOF),
+  };
+  auto stream = T_TRY(lexer_.Tokenize(p));
+  Check(stream, toknes);
 }

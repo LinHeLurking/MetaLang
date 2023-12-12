@@ -5,20 +5,16 @@
 #include <deque>
 
 #include "./char_equivalent.hpp"
+#include "./lexer_error.hpp"
 #include "./lexer_state.hpp"
 #include "./token.hpp"
-#include "./keyword_type.hpp"
 #include "src/util/file_reader.hpp"
 
 namespace meta_lang::parser {
 
 class Lexer {
  public:
-  enum class Error {
-    kErrorChar,
-    kEOF,
-    kNotImplemented,
-  };
+  using Error = LexerError;
   using CharEq = CharEq;
   using State = LexerState;
   using StreamT = std::deque<TokenPtr>;
@@ -89,10 +85,10 @@ class Lexer {
   }
 
   static inline std::tuple<int, const char*> LookAhead(int state,
-                                                const char* p) noexcept;
+                                                       const char* p) noexcept;
   static inline std::expected<int, Error> AddToken(StreamT& stream, State state,
-                                            const char* token_begin,
-                                            size_t token_len) noexcept;
+                                                   const char* token_begin,
+                                                   size_t token_len) noexcept;
 
   void FillChEq() noexcept;
   void FillTransitionTable() noexcept;
